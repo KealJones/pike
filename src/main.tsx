@@ -3,16 +3,30 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { CssBaseline } from '@mui/material'
-import { ErrorBoundary } from 'react-error-boundary';
+import { createBrowserRouter, RouterProvider } from 'react-router';
+import AnalysisPage from './pages/index.tsx'
+import { Layout } from './ui/Layout.tsx'
+
+const router = createBrowserRouter([
+  {
+    Component: App,
+    children: [
+      {
+        Component: Layout,
+        children: [
+          {
+            path: '/',
+            Component: AnalysisPage,
+          },
+        ],
+      },
+    ],
+  },
+], {basename:'/poke/'});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <CssBaseline />
-      <ErrorBoundary fallback={<div>Something went wrong.</div>} onError={(error, info) => {
-        console.error("Error caught by ErrorBoundary:", error);
-        console.info("Error info:", info);
-      }}>
-        <App />
-      </ErrorBoundary>
+    <RouterProvider router={router} />
   </StrictMode>,
 )

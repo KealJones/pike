@@ -13,7 +13,7 @@ export function PokemonEntry(props: { pokemon: Pokemon }) {
         aspectRatio: '1 / 1',
         borderRadius: '20px',
         bgcolor:
-          (singlePokemon?.stats?.cp ?? 0) > 1400 ? 'green' : singlePokemon.alignment == 'shadow' ? 'purple' : 'orange',
+          (singlePokemon?.stats?.cp ?? 0) > 1400 && (singlePokemon?.stats?.cp ?? 0) < 1500 ? 'green' : singlePokemon.alignment == 'shadow' ? 'purple' : 'orange',
       }}
     >
       <Box
@@ -112,8 +112,7 @@ export function PokemonEntry(props: { pokemon: Pokemon }) {
             component={'span'}
             sx={{
               color:
-                (singlePokemon.stats?.cp ?? 0) > 1400
-                  ? 'green'
+                (singlePokemon?.stats?.cp ?? 0) > 1400 && (singlePokemon?.stats?.cp ?? 0) < 1500 ? 'green'
                   : singlePokemon.alignment == 'shadow'
                   ? 'purple'
                   : 'orange',

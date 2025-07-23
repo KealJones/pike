@@ -1,5 +1,6 @@
 import type { ProEntry, PokeGenieEntry, Pokemon, GamemasterPokemonEntry, GameMasterFile } from "../types/pokemon.types";
 import { getPokemonGamemasterData } from "./gamemaster";
+import { uniqBy } from "./uniqBy";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isProEntry(entry: any): entry is ProEntry {
@@ -50,9 +51,10 @@ function standardizeAlignment(alignment?: string): 'shadow' | 'purified' | undef
   if (alignment == null) return undefined;
   // Alignment is a string of a number in Poke Genie, 0 = none, 1 = shadow, 2 = purified.
   const alignmentLookup: (undefined | 'shadow' | 'purified')[] = [undefined, 'shadow', 'purified'];
-  try {
-    return alignmentLookup[parseInt(alignment)];
-  } catch {
+  const alignmentNumber = parseInt(alignment);
+  if (!isNaN(alignmentNumber)) {
+    return alignmentLookup[alignmentNumber];
+  } else {
     // If it is not a number, we assume it is a string in which case it most likely comes from pro and return it as lowercase.
     return alignment.toLowerCase() as 'shadow' | 'purified';
   }
@@ -81,7 +83,7 @@ function createSpeciesId(name: string, alignment: string | undefined, form: stri
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function buildPokemonStorageJson(input: any, gameMaster: GameMasterFile): Pokemon[] {
-  return (Array.isArray(input) ? input : Object.values(input)).map((entry: ProEntry | PokeGenieEntry) => {
+  return uniqBy((Array.isArray(input) ? input : Object.values(input)).map((entry: ProEntry | PokeGenieEntry) => {
     const isPro = isProEntry(entry);
     let proFormClean: string | undefined = undefined;
     if (isPro) {
@@ -114,7 +116,7 @@ export function buildPokemonStorageJson(input: any, gameMaster: GameMasterFile):
       lucky: isPro ? entry.mon_islucky == "YES" : entry.Lucky === "1",
       alignment,
       form,
-      possibleMoves: {
+      movePool: {
         fast: fastMoves,
         charged: chargedMoves,
         elite: eliteMoves,
@@ -133,9 +135,9 @@ export function buildPokemonStorageJson(input: any, gameMaster: GameMasterFile):
           stamina: isPro ? entry.mon_stamina ?? 0 : parseInt(entry['Sta IV'] ?? '0'),
         },
         battle: {
-          attack: 0,
-          defense: 0,
-          stamina: 0,
+          attack: baseStats.atk + (isPro ? entry.mon_attack ?? 0 : parseInt(entry['Atk IV'] ?? '0')),
+          defense: baseStats.def + (isPro ? entry.mon_defence ?? 0 : parseInt(entry['Def IV'] ?? '0')),
+          stamina: baseStats.hp + (isPro ? entry.mon_stamina ?? 0 : parseInt(entry['Sta IV'] ?? '0')),
         },
         cp: isPro ? entry.mon_cp : parseInt(entry.CP ?? '0'),
       },
@@ -149,5 +151,5 @@ export function buildPokemonStorageJson(input: any, gameMaster: GameMasterFile):
         allParentSpeciesIds: parentSpeciesIds,
       }
     };
-  });
+  }), (p) => p.speciesName + JSON.stringify(p.stats.ivs) + JSON.stringify(p.moves));
 }

@@ -168,7 +168,7 @@ export interface Pokemon extends UniquePokemonDetails {
    * "none" means there is no secondary type it is only a single type.
    */
   types: [string, string];
-  possibleMoves: {
+  movePool: {
     fast: string[];
     charged: string[];
     elite?: string[];

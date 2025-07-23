@@ -5,21 +5,23 @@ const theme = createTheme({
   cssVariables: {
     colorSchemeSelector: 'class',
   },
-  components: {
-    MuiAlert: {
-      styleOverrides: {
-        root: {
-          variants: [
-            {
-              props: { severity: 'info' },
-              style: {
-                backgroundColor: '#60a5fa',
-              },
-            },
-          ],
-        },
-      },
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#fafafa',
     },
+    secondary: {
+      main: '#00b0ff',
+    },
+    error: {
+      main: '#ff1744',
+    },
+  },
+  typography: {
+    h2: {
+      fontFamily: 'Montserrat',
+    },
+    fontFamily: 'Montserrat',
   },
 });
 

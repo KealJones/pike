@@ -38,8 +38,6 @@ export function getCandidates(
 
 
     const ivChartLength = Object.keys(pvpIvChart).length;
-
-
     const candidates = pokemonStorage.filter(
       (p) =>
         targetParentSpeciesIds.includes(p.speciesId) &&

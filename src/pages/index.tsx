@@ -14,7 +14,7 @@ export default function AnalysisPage() {
   const pokemonStorage = usePokemonStorage((state) => state.pokemonStorage);
   const setPokemonStorage = usePokemonStorage((state) => state.updatePokemonStorage);
   const gameMasterPromise = useAppStore((state) => state.gameMasterPromise);
-  const ranking1500Promise = useAppStore((state) => state.ranking1500Promise);
+  const ranking1500Promise = useAppStore((state) => state.rankingGreatPromise);
 
   return (<>
       <main>

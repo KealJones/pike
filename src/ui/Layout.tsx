@@ -1,4 +1,4 @@
-import { DashboardLayout } from "@toolpad/core";
+import { DashboardLayout, PageContainer } from "@toolpad/core";
 import { Outlet } from "react-router";
 
 export function Layout() {

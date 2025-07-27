@@ -1,73 +1,138 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { GameMasterFile, Pokemon, Ranking1500Target } from '../types/pokemon.types';
+import type { GameMasterFile, Pokemon, RankingTarget } from '../types/pokemon.types';
 import { getPokemonGamemasterData } from './gamemaster';
+import { calculateRank } from 'pokemon-go-pvp-rank';
+// import { buildRank } from 'pokemon-go-pvp-rank/dist/rank-calculator';
+// const originalBuildRank = buildRank;
+// const rankCache = new Map<string, any>();
+// buildRank.prototype = function ({ pokedexEntry, maxCP, maxLevel = 40, minimumStatValue: minStat = 0, }) {
 
+//   const cacheKey = `${pokedexEntry.number}-${maxCP}-${maxLevel}-${minStat}`;
+//   if (rankCache.has(cacheKey)) {
+//     return rankCache.get(cacheKey);
+//   }
+
+//   const result = originalBuildRank.call(this, {
+//     pokedexEntry,
+//     maxCP,
+//     maxLevel,
+//     minimumStatValue: minStat,
+//   });
+
+//   rankCache.set(cacheKey, result);
+//   return result;
+// }
 export function getCandidates(
   pokemonStorage: Pokemon[],
   scoreMin: number,
   cpMax: number,
   gameMaster: GameMasterFile,
-  rankingsRaw: Ranking1500Target[]
+  rankingsRaw: RankingTarget[]
 ): { [key: string]: Pokemon[] } | null {
+  const allTargetsFamilyDexIds: number[] = [];
   const rankings = rankingsRaw.map((p, index) => ({ ...p, position: index + 1 }));
   const candidatesByTarget: { [key: string]: Pokemon[] } = {};
+  const unqualifiedCandidateCounts: { [key: string]: {count: number} } = {};
+  const getCountOfUnqualifiedCandidates = (speciesId: string) => {
+    if (!unqualifiedCandidateCounts[speciesId]) {
+      unqualifiedCandidateCounts[speciesId] = { count: 0 };
+    }
+    unqualifiedCandidateCounts[speciesId].count += 1;
+    return unqualifiedCandidateCounts[speciesId];
+  };
+
   for (const potentialTarget of rankings) {
     if (potentialTarget.score <= scoreMin) continue;
-    const targetParentSpeciesIds: string[] = [potentialTarget.speciesId];
+    const targetFamilySpeciesIds: string[] = [potentialTarget.speciesId];
+
     const potentialTargetGM = getPokemonGamemasterData(potentialTarget.speciesId, gameMaster);
-    let targetParentSpeciesId: string | null =
-      potentialTargetGM?.family?.parent ?? null;
+    allTargetsFamilyDexIds.push(potentialTargetGM.dex);
+    let targetParentSpeciesId: string | null = potentialTargetGM?.family?.parent ?? null;
 
     while (targetParentSpeciesId != null) {
       const parentEntry = getPokemonGamemasterData(targetParentSpeciesId, gameMaster);
       if (!parentEntry) break;
-      targetParentSpeciesIds.push(parentEntry.speciesId);
+     // targetFamilyDexIds.push(parentEntry.dex);
+      allTargetsFamilyDexIds.push(parentEntry.dex);
+      targetFamilySpeciesIds.push(parentEntry.speciesId);
       targetParentSpeciesId = parentEntry.family?.parent ?? null;
     }
 
-    const pvpIvChart = calculate(
-      potentialTargetGM.baseStats?.atk ?? 0,
-      potentialTargetGM.baseStats?.def ?? 0,
-      potentialTargetGM.baseStats?.hp ?? 0,
-      0,
-      1,
-      50,
-      false,
-      cpMax ?? 1500
-    );
+    // const pvpIvChart = calculate(
+    //   potentialTargetGM.baseStats?.atk ?? 0,
+    //   potentialTargetGM.baseStats?.def ?? 0,
+    //   potentialTargetGM.baseStats?.hp ?? 0,
+    //   0,
+    //   1,
+    //   50,
+    //   false,
+    //   cpMax ?? 1500
+    // );
 
+    const candidates = pokemonStorage.filter((p) => {
+      if (!targetFamilySpeciesIds.includes(p.speciesId)) {
+        return false;
+      }
 
-    const ivChartLength = Object.keys(pvpIvChart).length;
-    const candidates = pokemonStorage.filter(
-      (p) =>
-        targetParentSpeciesIds.includes(p.speciesId) &&
-        Object.entries(pvpIvChart).find((ivChartEntry, index) => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const [_, ivChart] = ivChartEntry;
-          return (
-            ivChart.find((option) => {
+      const potentialTargetRank = calculateRank({
+        refAttackStat: p.stats.ivs.attack ?? 0,
+        refDefenseStat: p.stats.ivs.defense ?? 0,
+        refHealthStat: p.stats.ivs.stamina ?? 0,
+        maxCP: cpMax ?? 1500,
+        maxLevel: 51,
+        pokedexEntry: {
+          number: potentialTargetGM.dex.toString(),
+          name: potentialTargetGM.speciesName,
+          baseAttack: potentialTargetGM.baseStats.atk,
+          baseDefense: potentialTargetGM.baseStats.def,
+          baseHealth: potentialTargetGM.baseStats.hp,
+          family: potentialTargetGM?.family?.id,
+        },
+      });
+      p.id = p.speciesId + p.stats.ivs.attack + p.stats.ivs.defense + p.stats.ivs.stamina + p.stats.cp;
 
-              if (
-                option.IVs.A === p.stats.ivs.attack &&
-                option.IVs.D === p.stats.ivs.defense &&
-                option.IVs.S === p.stats.ivs.stamina
-              ) {
-const rankPercentile = ((ivChartLength - index) / ivChartLength) * 100;
-if (rankPercentile < scoreMin) {
-                return false; // Not matching the scoreMin
-}
-                p.rank = {
-                  index: potentialTarget.position,
-                  percentile: rankPercentile,
-                  score: potentialTarget.score,
-                };
-                return true;
-              }
-              return false;
-            }) != null
-          );
-        })
-    );
+      //potentialTargetRank.occurence
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const ivChartLength = potentialTargetRank.rank.length;
+
+      const rankPercentile = ((ivChartLength - potentialTargetRank.occurence.rank - 1) / ivChartLength) * 100;
+      if (rankPercentile < scoreMin || (p.stats.cp ?? 0) > cpMax) {
+        //console.log(`Pokemon ${p.speciesId} with CP ${p.stats.cp} has a rank percentile of ${rankPercentile} which is below the scoreMin of ${scoreMin}`);
+        getCountOfUnqualifiedCandidates(p.speciesId);
+        return false; // Not matching the scoreMin
+      }
+      if ((p.rank?.percentile ?? 0) < rankPercentile) {
+        // console.log(`Updating rank for ${p.speciesId} with CP ${p.stats.cp} from ${p?.rankTarget?.speciesId} to ${potentialTarget.speciesId} because ${p.rank?.percentile} < ${rankPercentile}`);
+        if (candidatesByTarget[p?.rankTarget?.speciesId ?? '']) {
+          const wrongTargetIndex = candidatesByTarget[p?.rankTarget?.speciesId ?? ''].findIndex((c) => c == p);
+          if (wrongTargetIndex >= 0) {
+            candidatesByTarget[p?.rankTarget?.speciesId ?? ''].splice(wrongTargetIndex, 1);
+          }
+        }
+        p.rank = {
+          index: potentialTarget.position,
+          percentile: rankPercentile,
+          score: potentialTarget.score,
+          potentialCP: potentialTargetRank.occurence.cp,
+          unqualifiedCandidateCount: getCountOfUnqualifiedCandidates(potentialTarget.speciesId),
+        };
+        potentialTarget.dexId = potentialTargetGM.dex;
+        p.rankTarget = potentialTarget;
+      } else {
+        // console.log(
+        //   `Pokemon ${p} with CP ${p.stats.cp} already has a better rank (${p.rank?.percentile}%) than the target (${rankPercentile}%)`,p
+        // );
+        getCountOfUnqualifiedCandidates(p.speciesId);
+        return false; // Already has a better rank
+        // if (candidatesByTarget[p?.rankTarget?.speciesId ?? '']) {
+        //   const wrongTargetIndex = candidatesByTarget[p?.rankTarget?.speciesId ?? ''].findIndex((c) => c == p);
+        //   if (wrongTargetIndex >= 0) {
+        //     candidatesByTarget[p?.rankTarget?.speciesId ?? ''].splice(wrongTargetIndex, 1);
+        //   }
+        // }
+      }
+      return true;
+    });
 
     if (candidates.length == 0) {
       //console.warn(`No matching stat product found`);
@@ -77,12 +142,22 @@ if (rankPercentile < scoreMin) {
     //   candidates,
     //   (p) => p.speciesId + p.stats.ivs.attack + p.stats.ivs.defense + p.stats.ivs.stamina + p.stats.cp
     // );
-    const updatedCandidates = candidates.map((p) => {
-      p.rankTarget = potentialTarget;
-      return p;
-    });
-    candidatesByTarget[potentialTarget.speciesId] = updatedCandidates;
+    // const updatedCandidates = candidates.map((p) => {
+    //   if (p.rankTarget) {
+
+    //   }
+    //   p.rankTarget = potentialTarget;
+    //   return p;
+    // });
+    candidatesByTarget[potentialTarget.speciesId] = candidates;
   }
+  // const candidateDexIds = Object.keys(candidatesByTarget).map((key) => candidatesByTarget[key].map((p) => p.dex)).flat();
+  // const allDexIds = gameMaster.pokemon.map((p) => { return p.released ? p.dex : 0});
+  // const ranking1500DexIds = rankings.map((p) => getPokemonGamemasterData(p.speciesId, gameMaster)?.dex);
+  // // remove ranking1500DexIds from allDexIds
+  // const filteredDexIds = allDexIds.filter((dexId) => !ranking1500DexIds.includes(dexId));
+  // const missingDexIds = new Set(filteredDexIds.filter((dexId) => !candidateDexIds.includes(dexId)));
+  // console.log(`Missing Dex IDs: ${Array.from(missingDexIds).join(',')}`);
 
   return candidatesByTarget ?? null;
 }

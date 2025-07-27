@@ -1,6 +1,5 @@
 import type { ProEntry, PokeGenieEntry, Pokemon, GamemasterPokemonEntry, GameMasterFile } from "../types/pokemon.types";
 import { getPokemonGamemasterData } from "./gamemaster";
-import { uniqBy } from "./uniqBy";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isProEntry(entry: any): entry is ProEntry {
@@ -83,7 +82,7 @@ function createSpeciesId(name: string, alignment: string | undefined, form: stri
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function buildPokemonStorageJson(input: any, gameMaster: GameMasterFile): Pokemon[] {
-  return uniqBy((Array.isArray(input) ? input : Object.values(input)).map((entry: ProEntry | PokeGenieEntry) => {
+  return (Array.isArray(input) ? input : Object.values(input)).map((entry: ProEntry | PokeGenieEntry) => {
     const isPro = isProEntry(entry);
     let proFormClean: string | undefined = undefined;
     if (isPro) {
@@ -151,5 +150,5 @@ export function buildPokemonStorageJson(input: any, gameMaster: GameMasterFile):
         allParentSpeciesIds: parentSpeciesIds,
       }
     };
-  }), (p) => p.speciesName + JSON.stringify(p.stats.ivs) + JSON.stringify(p.moves));
+  });
 }

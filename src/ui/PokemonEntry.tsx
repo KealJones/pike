@@ -13,7 +13,7 @@ export function PokemonEntry(props: { pokemon: Pokemon }) {
         aspectRatio: '1 / 1',
         borderRadius: '20px',
         bgcolor:
-          (singlePokemon?.stats?.cp ?? 0) > 1400 && (singlePokemon?.stats?.cp ?? 0) < 1500 ? 'green' : singlePokemon.alignment == 'shadow' ? 'purple' : 'orange',
+          (singlePokemon?.stats?.cp ?? 0) == singlePokemon?.rank?.potentialCP ? 'green' : singlePokemon.alignment == 'shadow' ? 'purple' : 'orange',
       }}
     >
       <Box
@@ -112,7 +112,7 @@ export function PokemonEntry(props: { pokemon: Pokemon }) {
             component={'span'}
             sx={{
               color:
-                (singlePokemon?.stats?.cp ?? 0) > 1400 && (singlePokemon?.stats?.cp ?? 0) < 1500 ? 'green'
+                (singlePokemon?.stats?.cp ?? 0) == singlePokemon?.rank?.potentialCP ? 'green'
                   : singlePokemon.alignment == 'shadow'
                   ? 'purple'
                   : 'orange',
@@ -139,5 +139,8 @@ export function PokemonEntry(props: { pokemon: Pokemon }) {
 }
 
 function toPercenage(num: number): string {
-  return `${Math.round(num)}%`;
+  return `${roundToOneDecimal(num)}%`;
+}
+function roundToOneDecimal(num: number): number {
+  return Math.round(num * 10) / 10;
 }

@@ -1,22 +1,65 @@
 'use client';
-import type { GameMasterPromise, Pokemon, Ranking1500Target } from '../types/pokemon.types';
+import type { GameMasterPromise, Pokemon, RankingTarget } from '../types/pokemon.types';
 import { PokemonEntry } from './PokemonEntry';
 import { getCandidates } from '../utils/rank';
 import { use } from 'react';
 import Box from '@mui/material/Box';
+import { useMemo, useState } from 'react';
+import {
+  MaterialReactTable,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+} from 'material-react-table';
+import {
+  Button,
+  FormControl,
+  FormControlLabel,
+  FormLabel,
+  Radio,
+  RadioGroup,
+  Stack,
+} from '@mui/material';
+import { PokemonDataTable } from './PokemonDataTable';
 
-export function PotentialPokemon({filterRank, maxCp, gameMasterPromise, rankings1500Promise, pokemonStorage}: { filterRank?: number; maxCp?: number; gameMasterPromise: GameMasterPromise, rankings1500Promise: Promise<Ranking1500Target[]>; pokemonStorage: Pokemon[] }) {
+
+
+export function PotentialPokemon({
+  filterRank,
+  maxCp,
+  gameMasterPromise,
+  rankings1500Promise,
+  pokemonStorage,
+}: {
+  filterRank?: number;
+  maxCp?: number;
+  gameMasterPromise: GameMasterPromise;
+  rankings1500Promise: Promise<RankingTarget[]>;
+  pokemonStorage: Pokemon[];
+}) {
+  const [key, setKey] = useState(0);
   const gameMaster = use(gameMasterPromise);
   const rankings1500 = use(rankings1500Promise);
   const rankPercentFilter = filterRank ?? 80;
   maxCp ??= 1500;
+  const refreshButton = (<Button onClick={() => setKey((prev) => prev + 1)} variant="outlined" sx={{ marginBottom: '20px' }}>
+        Refresh Candidates
+      </Button>);
+  const candidatesByTarget = useMemo(() => getCandidates(pokemonStorage, rankPercentFilter, maxCp, gameMaster, rankings1500) ?? {}, [pokemonStorage, rankPercentFilter, maxCp, gameMaster, rankings1500]);
+  const candidates = useMemo(() =>Object.values(candidatesByTarget).flat(), [candidatesByTarget]);
+  if (candidates.length === 0) {
+    return <>
+      {refreshButton}
+      <Box sx={{ padding: '20px' }}>No candidates.</Box>
+    </>;
+  }
 
   return (
-    <Box
-      sx={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '20px' }}
-      id="pokedex"
-    >
-      {Object.entries(getCandidates(pokemonStorage, rankPercentFilter, maxCp, gameMaster, rankings1500) ?? {})?.map(([speciesId, candidates]) => {
+    <>
+      {refreshButton}
+      <PokemonDataTable key={key} candidates={candidates} gameMaster={gameMaster} />
+    </>
+  );
+      {/* {Object.entries(getCandidates(pokemonStorage, rankPercentFilter, maxCp, gameMaster, rankings1500) ?? {})?.map(([speciesId, candidates]) => {
         if (candidates.length === 0) return null;
         return (
           <Box id={`${speciesId}`} key={`${speciesId}`} sx={{display: 'flex', flexWrap: 'wrap', flexDirection: 'row', gap: '20px'}} >
@@ -34,7 +77,5 @@ export function PotentialPokemon({filterRank, maxCp, gameMasterPromise, rankings
             ))}
           </Box>
         );
-      })}
-    </Box>
-  );
+      })} */}
 }

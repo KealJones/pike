@@ -16,6 +16,8 @@
     "@mui/icons-material": "^7.2.0",
     "@mui/material": "^7.2.0",
     "@toolpad/core": "^0.16.0",
+    "material-react-table": "^3.2.1",
+    "pokemon-go-pvp-rank": "^0.2.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-error-boundary": "^6.0.0",

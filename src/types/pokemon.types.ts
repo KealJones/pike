@@ -100,7 +100,7 @@ export interface UniquePokemonDetails {
 }
 
 export type GameMasterPromise = Promise<GameMasterFile>;
-export type GameMasterFile = { pokemon: GamemasterPokemonEntry[], [key: string]: unknown };
+export type GameMasterFile = { pokemon: GamemasterPokemonEntry[], moves: GameMasterMove[], movesById: { [key: string]: GameMasterMove }, [key: string]: unknown };
 
 export interface GamemasterPokemonEntry {
   dex: number;
@@ -134,11 +134,15 @@ export interface GamemasterPokemonEntry {
   eliteMoves?: string[];
 }
 
+export const pokemonTypes: PokemonType[] = [
+'None', 'Normal', 'Fire', 'Water', 'Electric', 'Grass', 'Ice', 'Fighting', 'Poison', 'Ground', 'Flying', 'Psychic', 'Bug', 'Rock', 'Ghost', 'Dragon', 'Dark', 'Steel', 'Fairy', 'Stellar'];
+export type PokemonType = 'None' | 'Normal' | 'Fire' | 'Water' | 'Electric' | 'Grass' | 'Ice' | 'Fighting' | 'Poison' | 'Ground' | 'Flying' | 'Psychic' | 'Bug' | 'Rock' | 'Ghost' | 'Dragon' | 'Dark' | 'Steel' | 'Fairy' | 'Stellar';
+
 export interface Pokemon extends UniquePokemonDetails {
   //////////////
   //  Properties that are not unique but standard for this Pokemon species
   //////////////
-
+  id?: string; // This is an attempt at a unique ID for the pokemon instance, e.g., "meowth_1234567890"
   /**
    * The name of the species, e.g., "Meowth" or "Meowth (Galarian)"
    *
@@ -197,8 +201,10 @@ export interface Pokemon extends UniquePokemonDetails {
     index?: number;
     percentile?: number;
     score?: number; // This is the score of the pokemon in the rank, e.g
+    potentialCP: number; // This is the CP that the pokemon could potentially reach, e.g. 1500
+    unqualifiedCandidateCount?: {count:number}; // This is the number of candidates that were not qualified for this rank
   };
-  rankTarget?: Ranking1500Target;
+  rankTarget?: RankingTarget;
 }
 
 export type Rankings1500Matchup = {
@@ -215,11 +221,59 @@ export type Rankings1500Stats = {
 };
 
 export type Rankings1500Moves = {
-  fastMoves: string[];
-  chargedMoves: string[];
+  fastMoves: {
+          moveId: string,
+          uses: number,
+        }[];
+  chargedMoves: {
+          moveId: string,
+          uses: number,
+        }[];
 };
 
-export type Ranking1500Target = {
+export interface GameMasterMove {
+  /** Unique identifier for the move (e.g., "POISON_STING", "WATER_PULSE") */
+  moveId: string;
+
+  /** Display name of the move (e.g., "Poison Sting", "Water Pulse") */
+  name: string;
+
+  /** Optional abbreviated name for the move (e.g., "PS", "WP") */
+  abbreviation?: string;
+
+  /** The type of the move (e.g., "poison", "water", "fire") */
+  type: string;
+
+  /** Base power/damage of the move */
+  power: number;
+
+  /** Energy cost to use the move (0 for fast moves) */
+  energy: number;
+
+  /** Energy gained when using the move (0 for charged moves) */
+  energyGain: number;
+
+  /** Cooldown time in milliseconds */
+  cooldown: number;
+
+  /** Number of turns the move takes */
+  turns: number;
+
+  /** Move archetype classification (e.g., "General", "Spam/Bait", "Nuke", "Boost") */
+  archetype: string;
+
+  /** Stat buffs/debuffs applied by the move [attack, defense] */
+  buffs?: [number, number];
+
+  /** Target of the buff effect ("self" or "opponent") */
+  buffTarget?: "self" | "opponent";
+
+  /** Probability that the buff effect will be applied (as string, e.g., "1", "0.3", ".125") */
+  buffApplyChance?: string;
+}
+
+export type RankingTarget = {
+  dexId?: number;
   speciesId: string;
   speciesName: string;
   rating: number;

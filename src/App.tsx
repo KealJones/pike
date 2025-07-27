@@ -7,6 +7,7 @@ import { Dashboard } from '@mui/icons-material';
 import { Logo } from './ui/Logo';
 import { UploadStorageDialogTrigger } from './ui/UploadStorageDialog';
 import { DialogsProvider } from '@toolpad/core/useDialogs';
+import theme from './ui/theme';
 
 const NAVIGATION: Navigation = [
   {
@@ -23,7 +24,7 @@ const BRANDING = {
 
 function App() {
   return (
-    <ReactRouterAppProvider navigation={NAVIGATION} branding={BRANDING}>
+    <ReactRouterAppProvider navigation={NAVIGATION} branding={BRANDING} theme={theme}>
       <DialogsProvider>
         <Outlet />
       </DialogsProvider>

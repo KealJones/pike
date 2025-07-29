@@ -285,4 +285,5 @@ export type RankingTarget = {
   scores: number[];
   stats: Rankings1500Stats;
   position: number;
+  gm: GamemasterPokemonEntry;
 };

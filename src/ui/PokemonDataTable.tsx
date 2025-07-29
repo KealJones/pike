@@ -37,7 +37,7 @@ export function PokemonDataTable(props: { candidates: Pokemon[]; league: number;
         GroupedCell: ({ row }) => {
           //const { grouping } = table.getState();
           const optimalMoveset = row.original.rankTarget?.moveset ?? [];
-
+          const eliteMoves = row.original?.rankTarget?.gm?.eliteMoves ?? [];
           return (
             <Stack direction="column" alignItems="center" spacing={1}>
               <Stack direction="row" alignItems="center" spacing={1}>
@@ -54,7 +54,7 @@ export function PokemonDataTable(props: { candidates: Pokemon[]; league: number;
               <Stack direction={'column'}>
                 {optimalMoveset.map((moveId) => (
                   <Typography variant="caption" color="text.secondary">
-                    {props.gameMaster.movesById[moveId].name}
+                    {props.gameMaster.movesById[moveId].name}{eliteMoves.includes(moveId) ? '*' : ''}
                   </Typography>
                 ))}
               </Stack>
@@ -195,7 +195,7 @@ export function PokemonDataTable(props: { candidates: Pokemon[]; league: number;
     initialState: {
       expanded: true, //expand all groups by default
       grouping: ['targetSpeciesId'], //an array of columns to group by by default (can be multiple)
-      pagination: { pageIndex: 0, pageSize: 500 },
+      pagination: { pageIndex: 0, pageSize: 100 },
       columnVisibility: { unqualifiedCandidates: false },
     },
     filterFns: {

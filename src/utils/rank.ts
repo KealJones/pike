@@ -117,6 +117,7 @@ export function getCandidates(
           unqualifiedCandidateCount: getCountOfUnqualifiedCandidates(potentialTarget.speciesId),
         };
         potentialTarget.dexId = potentialTargetGM.dex;
+        potentialTarget.gm = potentialTargetGM;
         p.rankTarget = potentialTarget;
       } else {
         // console.log(

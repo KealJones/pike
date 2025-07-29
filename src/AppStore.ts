@@ -25,8 +25,13 @@ export const usePokemonStorage = create<PokemonStorageState>()(
 );
 
 export const useAppStore = create<AppState>()(() => ({
-  gameMasterPromise: fetch('https://raw.githubusercontent.com/pvpoke/pvpoke/refs/heads/master/src/data/gamemaster.min.json'/*'/poke/gamemaster.json'*/).then(async (response) => { const result = await response.json(); return ({...result, movesById: Object.fromEntries(result.moves.map((move: GameMasterMove) => [move.moveId, move]))});}),
-  rankingGreatPromise: fetch('https://raw.githubusercontent.com/pvpoke/pvpoke/refs/heads/master/src/data/rankings/gobattleleague/overall/rankings-1500.json'/*'/poke/rankings-1500.json'*/).then((response) => response.json()),
-  rankingUltraPromise: fetch('https://raw.githubusercontent.com/pvpoke/pvpoke/refs/heads/master/src/data/rankings/gobattleleague/overall/rankings-2500.json'/*'/poke/rankings-1500.json'*/).then((response) => response.json()),
-  rankingMasterPromise: fetch('https://raw.githubusercontent.com/pvpoke/pvpoke/refs/heads/master/src/data/rankings/gobattleleague/overall/rankings-10000.json'/*'/poke/rankings-1500.json'*/).then((response) => response.json()),
+  gameMasterPromise: fetch('https://esm.sh/gh/pvpoke/pvpoke/src/data/gamemaster.min.json'/*'/poke/gamemaster.json'*/).then(async (response) => { const result = await response.json(); return ({...result, movesById: Object.fromEntries(result.moves.map((move: GameMasterMove) => [move.moveId, move]))});}),
+  rankingGreatPromise: fetch('https://esm.sh/gh/pvpoke/pvpoke/src/data/rankings/gobattleleague/overall/rankings-1500.json'/*'/poke/rankings-1500.json'*/).then((response) => response.json()),
+  rankingUltraPromise: fetch('https://esm.sh/gh/pvpoke/pvpoke/src/data/rankings/gobattleleague/overall/rankings-2500.json'/*'/poke/rankings-1500.json'*/).then((response) => response.json()),
+  rankingMasterPromise: fetch('https://esm.sh/gh/pvpoke/pvpoke/src/data/rankings/gobattleleague/overall/rankings-10000.json'/*'/poke/rankings-1500.json'*/).then((response) => response.json()),
 }));
+
+// https://raw.githubusercontent.com/pvpoke/pvpoke/refs/heads/master/src/data/gamemaster.min.json
+// https://raw.githubusercontent.com/pvpoke/pvpoke/refs/heads/master/src/data/rankings/gobattleleague/overall/rankings-1500.json
+// https://raw.githubusercontent.com/pvpoke/pvpoke/refs/heads/master/src/data/rankings/gobattleleague/overall/rankings-2500.json
+// https://raw.githubusercontent.com/pvpoke/pvpoke/refs/heads/master/src/data/rankings/gobattleleague/overall/rankings-10000.json

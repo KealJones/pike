@@ -1,7 +1,13 @@
-import { Upload } from "@mui/icons-material";
-import { ListItem, IconButton, ListItemButton, ListItemIcon, ListItemText } from "@mui/material";
-import { useDialogs, type NavigationPageItem } from "@toolpad/core";
-import { UploadStorageDialog } from "./UploadStorageDialog";
+import { Upload } from '@mui/icons-material';
+import {
+  IconButton,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+} from '@mui/material';
+import { useDialogs, type NavigationPageItem } from '@toolpad/core';
+import { UploadStorageDialog } from './UploadStorageDialog';
 
 export function UploadNavItem({
   item,

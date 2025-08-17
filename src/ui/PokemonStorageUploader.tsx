@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, type ChangeEvent, use } from 'react';
-import { buildPokemonStorageJson } from '../utils/buildPokemonStorageJson';
-import type { GameMasterPromise, Pokemon } from '../types/pokemon.types';
 import { Typography } from '@mui/material';
+import { use, useState, type ChangeEvent } from 'react';
+import type { GameMasterPromise, Pokemon } from '../types/pokemon.types';
+import { buildPokemonStorageJson } from '../utils/buildPokemonStorageJson';
 import { csvToJson } from '../utils/csvToJson';
 
-export const PokemonStorageUploader: React.FC<{ gameMasterPromise: GameMasterPromise, setPokemonStorage: (pokemonStorage: Pokemon[]) => void }> = ({ gameMasterPromise, setPokemonStorage }) => {
+export const PokemonStorageUploader: React.FC<{
+  gameMasterPromise: GameMasterPromise;
+  setPokemonStorage: (pokemonStorage: Pokemon[]) => void;
+}> = ({ gameMasterPromise, setPokemonStorage }) => {
   const [status, setStatus] = useState<string | null>(null);
   const gameMaster = use(gameMasterPromise);
 
@@ -47,7 +50,9 @@ export const PokemonStorageUploader: React.FC<{ gameMasterPromise: GameMasterPro
         try {
           //localStorage.setItem('pokemon-storage', JSON.stringify(pokemonStorage));
           setStatus(
-            type === 'json' ? 'Saved to localStorage.' : 'Saved to localStorage.'
+            type === 'json'
+              ? 'Saved to localStorage.'
+              : 'Saved to localStorage.',
           );
         } catch (err) {
           setStatus(`Failed to save to localStorage. ${JSON.stringify(err)}`);
@@ -65,7 +70,11 @@ export const PokemonStorageUploader: React.FC<{ gameMasterPromise: GameMasterPro
 
   return (
     <div>
-      {status && <Typography variant='subtitle1' color="error">{status}</Typography>}
+      {status && (
+        <Typography variant="subtitle1" color="error">
+          {status}
+        </Typography>
+      )}
       <input type="file" onChange={handleFileChange} />
     </div>
   );

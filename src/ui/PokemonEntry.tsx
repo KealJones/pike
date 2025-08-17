@@ -13,7 +13,11 @@ export function PokemonEntry(props: { pokemon: Pokemon }) {
         aspectRatio: '1 / 1',
         borderRadius: '20px',
         bgcolor:
-          (singlePokemon?.stats?.cp ?? 0) == singlePokemon?.rank?.potentialCP ? 'green' : singlePokemon.alignment == 'shadow' ? 'purple' : 'orange',
+          (singlePokemon?.stats?.cp ?? 0) == singlePokemon?.rank?.potentialCP
+            ? 'green'
+            : singlePokemon.alignment == 'shadow'
+              ? 'purple'
+              : 'orange',
       }}
     >
       <Box
@@ -33,8 +37,23 @@ export function PokemonEntry(props: { pokemon: Pokemon }) {
         fill="none"
         style={{ opacity: '0.1' }}
       >
-        <rect x="159.52" y="175" width="152" height="152" rx="8" transform="rotate(-45 159.52 175)" fill="white" />
-        <rect y="107.48" width="152" height="152" rx="8" transform="rotate(-45 0 107.48)" fill="white" />
+        <rect
+          x="159.52"
+          y="175"
+          width="152"
+          height="152"
+          rx="8"
+          transform="rotate(-45 159.52 175)"
+          fill="white"
+        />
+        <rect
+          y="107.48"
+          width="152"
+          height="152"
+          rx="8"
+          transform="rotate(-45 0 107.48)"
+          fill="white"
+        />
       </Box>
       <Box
         sx={{
@@ -86,14 +105,22 @@ export function PokemonEntry(props: { pokemon: Pokemon }) {
           color: '#ffffff',
         }}
       >
-        <Box component={'span'} sx={{ display: 'block', marginBottom: '-0.25rem', opacity: 0.75 }}>
+        <Box
+          component={'span'}
+          sx={{ display: 'block', marginBottom: '-0.25rem', opacity: 0.75 }}
+        >
           {toPercenage(singlePokemon?.rank?.percentile ?? 0)}
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Box sx={{ columns: '1' }}>
             <Box
               component={'span'}
-              sx={{ display: 'block', fontSize: '1.25rem', lineHeight: '1.75rem', fontWeight: 600 }}
+              sx={{
+                display: 'block',
+                fontSize: '1.25rem',
+                lineHeight: '1.75rem',
+                fontWeight: 600,
+              }}
             >
               {singlePokemon.alignment == 'shadow' ? '🫟 ' : ''}
               {singlePokemon.shiny ? '✨ ' : ''}
@@ -101,21 +128,30 @@ export function PokemonEntry(props: { pokemon: Pokemon }) {
             </Box>
             <Box
               component={'span'}
-              sx={{ display: 'block', fontSize: '0.875rem', lineHeight: '1.25rem', fontWeight: 600 }}
+              sx={{
+                display: 'block',
+                fontSize: '0.875rem',
+                lineHeight: '1.25rem',
+                fontWeight: 600,
+              }}
             >
-              <img style={{ height: '12px', display: 'inline-block' }} src="./great-league.png" />{' '}
-              {` #${singlePokemon?.rank?.index} ${singlePokemon.rankTarget?.speciesName
-                .toUpperCase()} `}
+              <img
+                style={{ height: '12px', display: 'inline-block' }}
+                src="./great-league.png"
+              />{' '}
+              {` #${singlePokemon?.rank?.index} ${singlePokemon.rankTarget?.speciesName.toUpperCase()} `}
             </Box>
           </Box>
           <Box
             component={'span'}
             sx={{
               color:
-                (singlePokemon?.stats?.cp ?? 0) == singlePokemon?.rank?.potentialCP ? 'green'
+                (singlePokemon?.stats?.cp ?? 0) ==
+                singlePokemon?.rank?.potentialCP
+                  ? 'green'
                   : singlePokemon.alignment == 'shadow'
-                  ? 'purple'
-                  : 'orange',
+                    ? 'purple'
+                    : 'orange',
               display: ['block', 'flex'],
               paddingTop: '0.5rem',
               paddingBottom: '0.5rem',
@@ -132,7 +168,9 @@ export function PokemonEntry(props: { pokemon: Pokemon }) {
             {singlePokemon.stats?.cp}
           </Box>
         </Box>
-        <pre style={{ display: 'none' }}>${JSON.stringify(singlePokemon, null, 2)}</pre>
+        <pre style={{ display: 'none' }}>
+          ${JSON.stringify(singlePokemon, null, 2)}
+        </pre>
       </Box>
     </Box>
   );

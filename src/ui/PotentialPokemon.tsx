@@ -1,44 +1,84 @@
 'use client';
-import type { GameMasterPromise, Pokemon, RankingTarget } from '../types/pokemon.types';
-import { getCandidates } from '../utils/rank';
-import { use } from 'react';
+import { Stack, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import Box from '@mui/material/Box';
-import { useMemo, useState } from 'react';
-import { Button } from '@mui/material';
+import { use, useMemo, useState } from 'react';
+import type {
+  GameMasterPromise,
+  Pokemon,
+  RankingTarget,
+} from '../types/pokemon.types';
+import { getCandidates } from '../utils/rank';
 import { PokemonDataTable } from './PokemonDataTable';
 
 export function PotentialPokemon({
   filterRank,
-  maxCp,
   gameMasterPromise,
   rankings1500Promise,
+  rankings2500Promise,
+  rankings50000Promise,
   pokemonStorage,
 }: {
   filterRank?: number;
-  maxCp?: number;
   gameMasterPromise: GameMasterPromise;
   rankings1500Promise: Promise<RankingTarget[]>;
+  rankings2500Promise: Promise<RankingTarget[]>;
+  rankings50000Promise: Promise<RankingTarget[]>;
   pokemonStorage: Pokemon[];
 }) {
-  const [key, setKey] = useState(0);
+  const [league, setLeague] = useState(1500);
   const gameMaster = use(gameMasterPromise);
-  const rankings1500 = use(rankings1500Promise);
-  const rankPercentFilter = filterRank ?? 80;
-  maxCp ??= 1500;
-  const refreshButton = (
-    <Button onClick={() => setKey((prev) => prev + 1)} variant="outlined" sx={{ marginBottom: '20px' }}>
-      Refresh Candidates
-    </Button>
+  // const rankings1500 = use(rankings1500Promise);
+  // const rankings2500 = use(rankings2500Promise);
+  // const rankings50000 = use(rankings50000Promise);
+  const rankPercentFilter = filterRank ?? 0;
+  const rankingListToUse =
+    league === 1500
+      ? use(rankings1500Promise)
+      : league === 2500
+        ? use(rankings2500Promise)
+        : use(rankings50000Promise);
+  const candidates = useMemo(
+    () =>
+      getCandidates(
+        pokemonStorage,
+        rankPercentFilter,
+        league,
+        gameMaster,
+        rankingListToUse,
+      ) ?? [],
+    [pokemonStorage, rankPercentFilter, league, gameMaster, rankingListToUse],
   );
-  const candidatesByTarget = useMemo(
-    () => getCandidates(pokemonStorage, rankPercentFilter, maxCp, gameMaster, rankings1500) ?? {},
-    [pokemonStorage, rankPercentFilter, maxCp, gameMaster, rankings1500]
-  );
-  const candidates = useMemo(() => Object.values(candidatesByTarget).flat(), [candidatesByTarget]);
+
+  const shadowPotentials = useMemo(() => {
+    const results = new Map<
+      string,
+      { nonShadowIndex: number; shadowIndex: number }
+    >();
+    // loop over rankings1500 and find shadow pokemon that are at a higher index than their non-shadow counterparts
+    for (const [index, r] of rankingListToUse.entries()) {
+      if (r.speciesId.includes('_shadow')) {
+        console.log(r);
+        const nonShadowIndex = rankingListToUse.findIndex(
+          (nonShadow) =>
+            nonShadow.speciesId.replace('_shadow', '') ===
+              r.speciesId.replace('_shadow', '') &&
+            !nonShadow.speciesId.includes('_shadow'),
+        );
+        if (nonShadowIndex !== -1 && index < nonShadowIndex) {
+          if (!results.has(r.speciesId)) {
+            results.set(r.speciesId, { nonShadowIndex, shadowIndex: index });
+          }
+        }
+      }
+    }
+    return Array.from(results.keys());
+  }, [rankingListToUse]);
+
+  console.log('shadowPotentials', shadowPotentials);
+
   if (candidates.length === 0) {
     return (
       <>
-        {refreshButton}
         <Box sx={{ padding: '20px' }}>No candidates.</Box>
       </>
     );
@@ -46,8 +86,23 @@ export function PotentialPokemon({
 
   return (
     <>
-      {refreshButton}
-      <PokemonDataTable key={key} candidates={candidates} gameMaster={gameMaster} league={1500} />
+      <Stack direction="row" alignItems="center">
+        <ToggleButtonGroup
+          onChange={(_, value) => setLeague(value)}
+          value={league}
+          exclusive
+        >
+          <ToggleButton value={1500}>Great League - 1500</ToggleButton>
+          <ToggleButton value={2500}>Ultra League - 2500</ToggleButton>
+          <ToggleButton value={50000}>Master League - 50000</ToggleButton>
+        </ToggleButtonGroup>
+      </Stack>
+      <PokemonDataTable
+        candidates={candidates}
+        gameMaster={gameMaster}
+        league={league}
+        shadowPriority={shadowPotentials}
+      />
     </>
   );
   {

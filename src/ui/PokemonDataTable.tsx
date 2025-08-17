@@ -1,7 +1,16 @@
-import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from 'material-react-table';
+import { Avatar, Box, MenuItem, Stack, Typography } from '@mui/material';
+import {
+  MaterialReactTable,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+} from 'material-react-table';
 import { useMemo } from 'react';
-import { type GameMasterFile, type Pokemon, type PokemonType, pokemonTypes } from '../types/pokemon.types';
-import { Avatar, Stack, Box, Typography, MenuItem } from '@mui/material';
+import {
+  pokemonTypes,
+  type GameMasterFile,
+  type Pokemon,
+  type PokemonType,
+} from '../types/pokemon.types';
 const typeColors: Record<PokemonType, string> = {
   Bug: '#92BC2C',
   Dark: '#595761',
@@ -25,7 +34,12 @@ const typeColors: Record<PokemonType, string> = {
   Stellar: '#6A5ACD',
 };
 
-export function PokemonDataTable(props: { candidates: Pokemon[]; league: number; gameMaster: GameMasterFile }) {
+export function PokemonDataTable(props: {
+  candidates: Pokemon[];
+  league: number;
+  gameMaster: GameMasterFile;
+  shadowPriority: Array<string>;
+}) {
   //const state = use
   const columns = useMemo<MRT_ColumnDef<Pokemon>[]>(
     //column definitions...
@@ -33,7 +47,10 @@ export function PokemonDataTable(props: { candidates: Pokemon[]; league: number;
       {
         header: 'Ranked Target',
         id: 'targetSpeciesId',
-        accessorFn: (row) => `${row.rank?.index} - ${row.rankTarget?.speciesId}`,
+        size: 250,
+        grow: true,
+        accessorFn: (row) =>
+          `${row.rank?.index} - ${row.rankTarget?.speciesId}`,
         GroupedCell: ({ row }) => {
           //const { grouping } = table.getState();
           const optimalMoveset = row.original.rankTarget?.moveset ?? [];
@@ -42,7 +59,8 @@ export function PokemonDataTable(props: { candidates: Pokemon[]; league: number;
             <Stack direction="column" alignItems="center" spacing={1}>
               <Stack direction="row" alignItems="center" spacing={1}>
                 <Box component="span">
-                  #{row.original.rank?.index} - {row.original.rankTarget?.speciesId.toUpperCase()} (
+                  #{row.original.rank?.index} -{' '}
+                  {row.original.rankTarget?.speciesId.toUpperCase()} (
                   {row.getLeafRows().length})
                 </Box>
                 <Avatar
@@ -54,7 +72,8 @@ export function PokemonDataTable(props: { candidates: Pokemon[]; league: number;
               <Stack direction={'column'}>
                 {optimalMoveset.map((moveId) => (
                   <Typography variant="caption" color="text.secondary">
-                    {props.gameMaster.movesById[moveId].name}{eliteMoves.includes(moveId) ? '*' : ''}
+                    {props.gameMaster.movesById[moveId].name}
+                    {eliteMoves.includes(moveId) ? '*' : ''}
                   </Typography>
                 ))}
               </Stack>
@@ -71,7 +90,23 @@ export function PokemonDataTable(props: { candidates: Pokemon[]; league: number;
       {
         header: 'Rank Percentile',
         id: 'rankPercentile',
-        accessorFn: (row) => toPercenage(row.rank?.percentile ?? 0),
+        grow: true,
+        accessorFn: (row) => row.rank?.percentile,
+
+        Cell: ({ cell }) => toPercenage(cell.getValue<number>()),
+        filterVariant: 'range-slider',
+        filterFn: 'betweenInclusive', // default (or between)
+        muiFilterSliderProps: {
+          marks: true,
+          max: 100, //custom max (as opposed to faceted max)
+          min: 0, //custom min (as opposed to faceted min)
+          step: 1,
+          // valueLabelFormat: (value) =>
+          //   value.toLocaleString('en-US', {
+          //     style: 'currency',
+          //     currency: 'USD',
+          //   }),
+        },
       },
       {
         header: 'Species ID',
@@ -81,12 +116,13 @@ export function PokemonDataTable(props: { candidates: Pokemon[]; league: number;
       {
         header: 'CP',
         id: 'cp',
+        grow: true,
         accessorFn: (row) => row.stats?.cp,
         filterVariant: 'range-slider',
         filterFn: 'betweenInclusive', // default (or between)
         muiFilterSliderProps: {
           marks: true,
-          max: 1500, //custom max (as opposed to faceted max)
+          max: props.league, //custom max (as opposed to faceted max)
           min: 0, //custom min (as opposed to faceted min)
           step: 1,
           // valueLabelFormat: (value) =>
@@ -99,7 +135,11 @@ export function PokemonDataTable(props: { candidates: Pokemon[]; league: number;
       {
         header: 'Types',
         id: 'types',
-        accessorFn: (row) => row.types.map((type) => type.charAt(0).toUpperCase() + type.slice(1)).join(', '),
+        grow: true,
+        accessorFn: (row) =>
+          row.types
+            .map((type) => type.charAt(0).toUpperCase() + type.slice(1))
+            .join(', '),
         filterVariant: 'multi-select',
         columnFilterModeOptions: ['includesString', 'equalsString'],
         renderColumnFilterModeMenuItems: ({ onSelectFilterMode }) => [
@@ -127,7 +167,10 @@ export function PokemonDataTable(props: { candidates: Pokemon[]; league: number;
                   return null;
                 }
                 return (
-                  <Avatar sx={{ bgcolor: typeColors[type as PokemonType] }} key={type}>
+                  <Avatar
+                    sx={{ bgcolor: typeColors[type as PokemonType] }}
+                    key={type}
+                  >
                     <Box
                       component={'img'}
                       sx={{
@@ -146,21 +189,25 @@ export function PokemonDataTable(props: { candidates: Pokemon[]; league: number;
       {
         header: 'Target CP',
         id: 'targetCp',
+        grow: true,
         accessorFn: (row) => row.rank?.potentialCP,
       },
       {
         header: 'Attack IV',
         id: 'attackIv',
+        grow: true,
         accessorFn: (row) => row.stats?.ivs.attack,
       },
       {
         header: 'Stamina IV',
         id: 'staminaIv',
+        grow: true,
         accessorFn: (row) => row.stats?.ivs.stamina,
       },
       {
         header: 'Defense IV',
         id: 'defenseIv',
+        grow: true,
         accessorFn: (row) => row.stats?.ivs.defense,
       },
       // {
@@ -180,64 +227,81 @@ export function PokemonDataTable(props: { candidates: Pokemon[]; league: number;
       //   accessorKey: 'salary',
       // },
     ],
-    []
+    [],
     //end
   );
 
   const table = useMaterialReactTable({
     columns,
     data: props.candidates,
+
     enableGrouping: true,
     enableStickyHeader: true,
     enableColumnOrdering: true,
+    enablePagination: false,
     enableColumnResizing: true,
     enableColumnFilterModes: true,
+    enableRowVirtualization: true,
     initialState: {
       expanded: true, //expand all groups by default
       grouping: ['targetSpeciesId'], //an array of columns to group by by default (can be multiple)
-      pagination: { pageIndex: 0, pageSize: 100 },
+      //pagination: { pageIndex: 0, pageSize: 100 },
       columnVisibility: { unqualifiedCandidates: false },
+      sorting: [
+        {
+          id: 'targetSpeciesId', // The accessor or id of the column to sort by
+          desc: false, // true for descending, false for ascending
+        },
+        {
+          id: 'rankPercentile', // The accessor or id of the column to sort by
+          desc: true, // true for descending, false for ascending
+        },
+      ],
     },
     filterFns: {
       oneOf: (row, id, filterValue: string[]) => {
-        const value: string = row.getValue(id);
-        console.log('oneOf value', value);
-        return filterValue.some((filter) => value.includes(filter));
+        const rawValue: string = row.original.ty.getValue(id);
+        const value = rawValue.split(',').map((v) => v.trim());
+        return filterValue.some(
+          (filter) => value.includes(filter) && value.includes('None'),
+        );
       },
       anyOf: (row, id, filterValue: string[]) => {
-        const value: string = row.getValue(id);
+        const rawValue: string = row.getValue(id);
+        const value = rawValue.split(',').map((v) => v.trim());
         return filterValue.some((filter) => value.includes(filter));
       },
       allOf: (row, id, filterValue: string[]) => {
         console.log('allOf filterValue', filterValue);
+        const rawValue: string = row.getValue(id);
+        const value = rawValue.split(',').map((v) => v.trim());
         return filterValue.every((filter) => {
-          const value: string = row.getValue(id);
-          console.log('value', value);
-          return filter.includes(value);
+          return value.includes(filter);
         });
       },
       not: (row, id, filterValue: string[]) => {
-        const value: string = row.getValue(id);
+        const rawValue: string = row.getValue(id);
+        const value = rawValue.split(',').map((v) => v.trim());
         return !filterValue.some((filter) => value.includes(filter));
       },
     },
-    muiTableContainerProps: { sx: { maxHeight: '800px' } },
+    muiTableContainerProps: { sx: { flexGrow: 1 } },
     muiTableBodyCellProps: ({ cell }) => ({
       ...(cell.getIsGrouped() ? { colSpan: 2 } : {}),
     }),
     muiTableBodyRowProps: ({ row }) => ({
       //conditionally style selected rows
       sx: {
-        backgroundColor: row.original.rank?.potentialCP == row.original.stats?.cp ? 'green' : undefined,
+        backgroundColor: props.shadowPriority.includes(row.original.speciesId)
+          ? 'purple'
+          : row.original.rank?.potentialCP == row.original.stats?.cp
+            ? 'green'
+            : undefined,
       },
     }),
   });
 
-  return (
-    <Stack gap="1rem">
-      <MaterialReactTable table={table} />
-    </Stack>
-  );
+  return <MaterialReactTable table={table} />;
 }
 
 function toPercenage(num: number): string {

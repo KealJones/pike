@@ -1,14 +1,24 @@
-import { DashboardLayout, DashboardSidebarPageItem, useDialogs, type NavigationPageItem } from '@toolpad/core';
-import { Outlet } from 'react-router';
+import {
+  DashboardLayout,
+  DashboardSidebarPageItem,
+  useDialogs,
+  type NavigationPageItem,
+} from '@toolpad/core';
 import { useCallback } from 'react';
+import { Outlet } from 'react-router';
 import { UploadStorageDialog } from './UploadStorageDialog';
 
 export function Layout() {
-    const dialogManager = useDialogs();
+  const dialogManager = useDialogs();
   const renderPageItem = useCallback((item: NavigationPageItem) => {
     if (item.title === 'Upload') {
-      // @ts-expect-error onClick does get passed in correctly
-      return <DashboardSidebarPageItem item={item} onClick={() => dialogManager.open(UploadStorageDialog)} />;
+      return (
+        <DashboardSidebarPageItem
+          item={item}
+          // @ts-expect-error onClick does get passed in correctly
+          onClick={() => dialogManager.open(UploadStorageDialog)}
+        />
+      );
     }
 
     return <DashboardSidebarPageItem item={item} />;

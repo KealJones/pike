@@ -1,12 +1,12 @@
 import './App.css';
 
-import { Outlet } from 'react-router';
-import { ReactRouterAppProvider } from '@toolpad/core/react-router';
-import type { Navigation } from '@toolpad/core/AppProvider';
-import { Logo } from './ui/Logo';
-import { DialogsProvider } from '@toolpad/core/useDialogs';
-import theme from './ui/theme';
 import { Upload } from '@mui/icons-material';
+import type { Navigation } from '@toolpad/core/AppProvider';
+import { ReactRouterAppProvider } from '@toolpad/core/react-router';
+import { DialogsProvider } from '@toolpad/core/useDialogs';
+import { Outlet } from 'react-router';
+import { Logo } from './ui/Logo';
+import theme from './ui/theme';
 
 const NAVIGATION: Navigation = [
   {
@@ -16,15 +16,18 @@ const NAVIGATION: Navigation = [
   },
 ];
 
-
 const BRANDING = {
-  title: 'Poke',
+  title: 'Piké',
   logo: <Logo />,
 };
 
 function App() {
   return (
-    <ReactRouterAppProvider navigation={NAVIGATION} branding={BRANDING} theme={theme}>
+    <ReactRouterAppProvider
+      navigation={NAVIGATION}
+      branding={BRANDING}
+      theme={theme}
+    >
       <DialogsProvider>
         <Outlet />
       </DialogsProvider>

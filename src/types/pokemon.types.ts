@@ -1,10 +1,10 @@
 export interface ProEntry {
-  mon_isshiny?: "YES" | "NO";
-  mon_islucky?: "YES" | "NO";
+  mon_isshiny?: 'YES' | 'NO';
+  mon_islucky?: 'YES' | 'NO';
   mon_weight?: number;
   mon_move_1?: string;
   mon_height?: number;
-  mon_gender?: "MALE" | "FEMALE" | string;
+  mon_gender?: 'MALE' | 'FEMALE' | string;
   mon_stamina?: number;
   mon_attack?: number;
   mon_name?: string;
@@ -15,60 +15,60 @@ export interface ProEntry {
   mon_defence?: number;
   mon_weather_boost?: string;
   mon_form?: string;
-  mon_alignment?: "SHADOW" | "PURIFIED" | string;
+  mon_alignment?: 'SHADOW' | 'PURIFIED' | string;
 }
 
 export interface PokeGenieEntry {
   Index?: string;
   Name?: string;
   Form?: string;
-  "Pokemon Number"?: string;
-  Gender?: "♂" | "♀" | string;
+  'Pokemon Number'?: string;
+  Gender?: '♂' | '♀' | string;
   CP?: string;
   HP?: string;
-  "Atk IV"?: string;
-  "Def IV"?: string;
-  "Sta IV"?: string;
-  "IV Avg"?: number | string;
-  "Level Min"?: string;
-  "Level Max"?: string;
-  "Quick Move"?: string;
-  "Charge Move"?: string;
-  "Charge Move 2"?: string;
-  "Scan Date"?: string;
-  "Original Scan Date"?: string;
-  "Catch Date"?: string;
+  'Atk IV'?: string;
+  'Def IV'?: string;
+  'Sta IV'?: string;
+  'IV Avg'?: number | string;
+  'Level Min'?: string;
+  'Level Max'?: string;
+  'Quick Move'?: string;
+  'Charge Move'?: string;
+  'Charge Move 2'?: string;
+  'Scan Date'?: string;
+  'Original Scan Date'?: string;
+  'Catch Date'?: string;
   Weight?: number | string;
   Height?: number | string;
   Lucky?: string;
-  "Shadow/Purified"?: string;
+  'Shadow/Purified'?: string;
   Favorite?: string;
   Dust?: string;
-  "Rank % (G)"?: string;
-  "Rank # (G)"?: string;
-  "Stat Prod (G)"?: string;
-  "Dust Cost (G)"?: string;
-  "Candy Cost (G)"?: string;
-  "Name (G)"?: string;
-  "Form (G)"?: string;
-  "Sha/Pur (G)"?: string;
-  "Rank % (U)"?: string;
-  "Rank # (U)"?: string;
-  "Stat Prod (U)"?: string;
-  "Dust Cost (U)"?: string;
-  "Candy Cost (U)"?: string;
-  "Name (U)"?: string;
-  "Form (U)"?: string;
-  "Sha/Pur (U)"?: string;
-  "Rank % (L)"?: string;
-  "Rank # (L)"?: string;
-  "Stat Prod (L)"?: string;
-  "Dust Cost (L)"?: number | string;
-  "Candy Cost (L)"?: number | string;
-  "Name (L)"?: string;
-  "Form (L)"?: string;
-  "Sha/Pur (L)"?: number | string;
-  "Marked for PvP use"?: string;
+  'Rank % (G)'?: string;
+  'Rank # (G)'?: string;
+  'Stat Prod (G)'?: string;
+  'Dust Cost (G)'?: string;
+  'Candy Cost (G)'?: string;
+  'Name (G)'?: string;
+  'Form (G)'?: string;
+  'Sha/Pur (G)'?: string;
+  'Rank % (U)'?: string;
+  'Rank # (U)'?: string;
+  'Stat Prod (U)'?: string;
+  'Dust Cost (U)'?: string;
+  'Candy Cost (U)'?: string;
+  'Name (U)'?: string;
+  'Form (U)'?: string;
+  'Sha/Pur (U)'?: string;
+  'Rank % (L)'?: string;
+  'Rank # (L)'?: string;
+  'Stat Prod (L)'?: string;
+  'Dust Cost (L)'?: number | string;
+  'Candy Cost (L)'?: number | string;
+  'Name (L)'?: string;
+  'Form (L)'?: string;
+  'Sha/Pur (L)'?: number | string;
+  'Marked for PvP use'?: string;
 }
 
 export interface UniquePokemonDetails {
@@ -100,7 +100,12 @@ export interface UniquePokemonDetails {
 }
 
 export type GameMasterPromise = Promise<GameMasterFile>;
-export type GameMasterFile = { pokemon: GamemasterPokemonEntry[], moves: GameMasterMove[], movesById: { [key: string]: GameMasterMove }, [key: string]: unknown };
+export type GameMasterFile = {
+  pokemon: GamemasterPokemonEntry[];
+  moves: GameMasterMove[];
+  movesById: { [key: string]: GameMasterMove };
+  [key: string]: unknown;
+};
 
 export interface GamemasterPokemonEntry {
   dex: number;
@@ -135,8 +140,48 @@ export interface GamemasterPokemonEntry {
 }
 
 export const pokemonTypes: PokemonType[] = [
-'None', 'Normal', 'Fire', 'Water', 'Electric', 'Grass', 'Ice', 'Fighting', 'Poison', 'Ground', 'Flying', 'Psychic', 'Bug', 'Rock', 'Ghost', 'Dragon', 'Dark', 'Steel', 'Fairy', 'Stellar'];
-export type PokemonType = 'None' | 'Normal' | 'Fire' | 'Water' | 'Electric' | 'Grass' | 'Ice' | 'Fighting' | 'Poison' | 'Ground' | 'Flying' | 'Psychic' | 'Bug' | 'Rock' | 'Ghost' | 'Dragon' | 'Dark' | 'Steel' | 'Fairy' | 'Stellar';
+  'None',
+  'Normal',
+  'Fire',
+  'Water',
+  'Electric',
+  'Grass',
+  'Ice',
+  'Fighting',
+  'Poison',
+  'Ground',
+  'Flying',
+  'Psychic',
+  'Bug',
+  'Rock',
+  'Ghost',
+  'Dragon',
+  'Dark',
+  'Steel',
+  'Fairy',
+  'Stellar',
+];
+export type PokemonType =
+  | 'None'
+  | 'Normal'
+  | 'Fire'
+  | 'Water'
+  | 'Electric'
+  | 'Grass'
+  | 'Ice'
+  | 'Fighting'
+  | 'Poison'
+  | 'Ground'
+  | 'Flying'
+  | 'Psychic'
+  | 'Bug'
+  | 'Rock'
+  | 'Ghost'
+  | 'Dragon'
+  | 'Dark'
+  | 'Steel'
+  | 'Fairy'
+  | 'Stellar';
 
 export interface Pokemon extends UniquePokemonDetails {
   //////////////
@@ -159,7 +204,6 @@ export interface Pokemon extends UniquePokemonDetails {
    * This is not a unique ID, because different forms of the same species have the same dex id (e.g., "meowth" is 52 and "meowth_galarian" is also 52)
    **/
   dex: number;
-
 
   baseStats: {
     attack: number;
@@ -202,7 +246,7 @@ export interface Pokemon extends UniquePokemonDetails {
     percentile?: number;
     score?: number; // This is the score of the pokemon in the rank, e.g
     potentialCP: number; // This is the CP that the pokemon could potentially reach, e.g. 1500
-    unqualifiedCandidateCount?: {count:number}; // This is the number of candidates that were not qualified for this rank
+    unqualifiedCandidateCount?: { count: number }; // This is the number of candidates that were not qualified for this rank
   };
   rankTarget?: RankingTarget;
 }
@@ -222,13 +266,13 @@ export type Rankings1500Stats = {
 
 export type Rankings1500Moves = {
   fastMoves: {
-          moveId: string,
-          uses: number,
-        }[];
+    moveId: string;
+    uses: number;
+  }[];
   chargedMoves: {
-          moveId: string,
-          uses: number,
-        }[];
+    moveId: string;
+    uses: number;
+  }[];
 };
 
 export interface GameMasterMove {
@@ -266,7 +310,7 @@ export interface GameMasterMove {
   buffs?: [number, number];
 
   /** Target of the buff effect ("self" or "opponent") */
-  buffTarget?: "self" | "opponent";
+  buffTarget?: 'self' | 'opponent';
 
   /** Probability that the buff effect will be applied (as string, e.g., "1", "0.3", ".125") */
   buffApplyChance?: string;

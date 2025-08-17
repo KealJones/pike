@@ -1,8 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { GameMasterFile, Pokemon, RankingTarget } from '../types/pokemon.types';
+import type {
+  GameMasterFile,
+  Pokemon,
+  RankingTarget,
+} from '../types/pokemon.types';
 import { getPokemonGamemasterData } from './gamemaster';
-import { calculateRank } from 'pokemon-go-pvp-rank';
-// import { buildRank } from 'pokemon-go-pvp-rank/dist/rank-calculator';
+import { buildRank, type RankOccurence } from './rank-calculator';
 // const originalBuildRank = buildRank;
 // const rankCache = new Map<string, any>();
 // buildRank.prototype = function ({ pokedexEntry, maxCP, maxLevel = 40, minimumStatValue: minStat = 0, }) {
@@ -22,17 +25,32 @@ import { calculateRank } from 'pokemon-go-pvp-rank';
 //   rankCache.set(cacheKey, result);
 //   return result;
 // }
+// export function useCandidates(
+//   pokemonStorage: Pokemon[],
+//   scoreMin: number,
+//   cpMax: number,
+//   gameMaster: GameMasterFile,
+//   rankingsRaw: RankingTarget[]
+// ) {
+
+// }
+const rankCache = new Map<string, RankOccurence[]>();
+
 export function getCandidates(
   pokemonStorage: Pokemon[],
   scoreMin: number,
   cpMax: number,
   gameMaster: GameMasterFile,
-  rankingsRaw: RankingTarget[]
-): { [key: string]: Pokemon[] } | null {
+  rankingsRaw: RankingTarget[],
+): Pokemon[] | null {
   const allTargetsFamilyDexIds: number[] = [];
-  const rankings = rankingsRaw.map((p, index) => ({ ...p, position: index + 1 }));
+  const rankings = rankingsRaw.map((p, index) => ({
+    ...p,
+    position: index + 1,
+  }));
   const candidatesByTarget: { [key: string]: Pokemon[] } = {};
-  const unqualifiedCandidateCounts: { [key: string]: {count: number} } = {};
+  const allCandidates: Pokemon[] = [];
+  const unqualifiedCandidateCounts: { [key: string]: { count: number } } = {};
   const getCountOfUnqualifiedCandidates = (speciesId: string) => {
     if (!unqualifiedCandidateCounts[speciesId]) {
       unqualifiedCandidateCounts[speciesId] = { count: 0 };
@@ -45,14 +63,21 @@ export function getCandidates(
     if (potentialTarget.score <= scoreMin) continue;
     const targetFamilySpeciesIds: string[] = [potentialTarget.speciesId];
 
-    const potentialTargetGM = getPokemonGamemasterData(potentialTarget.speciesId, gameMaster);
+    const potentialTargetGM = getPokemonGamemasterData(
+      potentialTarget.speciesId,
+      gameMaster,
+    );
     allTargetsFamilyDexIds.push(potentialTargetGM.dex);
-    let targetParentSpeciesId: string | null = potentialTargetGM?.family?.parent ?? null;
+    let targetParentSpeciesId: string | null =
+      potentialTargetGM?.family?.parent ?? null;
 
     while (targetParentSpeciesId != null) {
-      const parentEntry = getPokemonGamemasterData(targetParentSpeciesId, gameMaster);
+      const parentEntry = getPokemonGamemasterData(
+        targetParentSpeciesId,
+        gameMaster,
+      );
       if (!parentEntry) break;
-     // targetFamilyDexIds.push(parentEntry.dex);
+      // targetFamilyDexIds.push(parentEntry.dex);
       allTargetsFamilyDexIds.push(parentEntry.dex);
       targetFamilySpeciesIds.push(parentEntry.speciesId);
       targetParentSpeciesId = parentEntry.family?.parent ?? null;
@@ -68,71 +93,99 @@ export function getCandidates(
     //   false,
     //   cpMax ?? 1500
     // );
-
-    const candidates = pokemonStorage.filter((p) => {
+    const candidates: Pokemon[] = [];
+    pokemonStorage.forEach((pokemon) => {
+      const p = { ...pokemon };
       if (!targetFamilySpeciesIds.includes(p.speciesId)) {
         return false;
       }
 
-      const potentialTargetRank = calculateRank({
-        refAttackStat: p.stats.ivs.attack ?? 0,
-        refDefenseStat: p.stats.ivs.defense ?? 0,
-        refHealthStat: p.stats.ivs.stamina ?? 0,
-        maxCP: cpMax ?? 1500,
-        maxLevel: 51,
-        pokedexEntry: {
-          number: potentialTargetGM.dex.toString(),
-          name: potentialTargetGM.speciesName,
-          baseAttack: potentialTargetGM.baseStats.atk,
-          baseDefense: potentialTargetGM.baseStats.def,
-          baseHealth: potentialTargetGM.baseStats.hp,
-          family: potentialTargetGM?.family?.id,
-        },
+      let potentialTargetRank: RankOccurence | undefined;
+
+      let cachedRank = rankCache.get(potentialTargetGM.speciesId);
+      if (!cachedRank) {
+        rankCache.set(
+          potentialTargetGM.speciesId,
+          buildRank({
+            maxCP: cpMax ?? 1500,
+            maxLevel: 51,
+            pokedexEntry: {
+              number: potentialTargetGM.dex.toString(),
+              name: potentialTargetGM.speciesName,
+              baseAttack: potentialTargetGM.baseStats.atk,
+              baseDefense: potentialTargetGM.baseStats.def,
+              baseHealth: potentialTargetGM.baseStats.hp,
+              family: potentialTargetGM?.family?.id,
+            },
+          }),
+        );
+      }
+      cachedRank = rankCache.get(potentialTargetGM.speciesId);
+      potentialTargetRank = cachedRank?.find((el) => {
+        return (
+          el.attackStat === (p.stats.ivs.attack ?? 0) &&
+          el.defenseStat === (p.stats.ivs.defense ?? 0) &&
+          el.healthStat === (p.stats.ivs.stamina ?? 0)
+        );
       });
-      p.id = p.speciesId + p.stats.ivs.attack + p.stats.ivs.defense + p.stats.ivs.stamina + p.stats.cp;
+
+      p.id =
+        p.speciesId +
+        p.stats.ivs.attack +
+        p.stats.ivs.defense +
+        p.stats.ivs.stamina +
+        p.stats.cp;
 
       //potentialTargetRank.occurence
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const ivChartLength = potentialTargetRank.rank.length;
+      const ivChartLength = cachedRank?.length ?? 0;
 
-      const rankPercentile = ((ivChartLength - potentialTargetRank.occurence.rank - 1) / ivChartLength) * 100;
-      if (rankPercentile < scoreMin || (p.stats.cp ?? 0) > cpMax) {
+      const rankPercentile =
+        ((ivChartLength - potentialTargetRank!.rank) / ivChartLength) * 100;
+      if ((p.stats.cp ?? 0) > cpMax) {
         //console.log(`Pokemon ${p.speciesId} with CP ${p.stats.cp} has a rank percentile of ${rankPercentile} which is below the scoreMin of ${scoreMin}`);
         getCountOfUnqualifiedCandidates(p.speciesId);
         return false; // Not matching the scoreMin
       }
-      if ((p.rank?.percentile ?? 0) < rankPercentile) {
-        // console.log(`Updating rank for ${p.speciesId} with CP ${p.stats.cp} from ${p?.rankTarget?.speciesId} to ${potentialTarget.speciesId} because ${p.rank?.percentile} < ${rankPercentile}`);
-        if (candidatesByTarget[p?.rankTarget?.speciesId ?? '']) {
-          const wrongTargetIndex = candidatesByTarget[p?.rankTarget?.speciesId ?? ''].findIndex((c) => c == p);
-          if (wrongTargetIndex >= 0) {
-            candidatesByTarget[p?.rankTarget?.speciesId ?? ''].splice(wrongTargetIndex, 1);
-          }
+      // if ((p.rank?.percentile ?? 0) < rankPercentile) {
+      // console.log(`Updating rank for ${p.speciesId} with CP ${p.stats.cp} from ${p?.rankTarget?.speciesId} to ${potentialTarget.speciesId} because ${p.rank?.percentile} < ${rankPercentile}`);
+      if (candidatesByTarget[p?.rankTarget?.speciesId ?? '']) {
+        const wrongTargetIndex = candidatesByTarget[
+          p?.rankTarget?.speciesId ?? ''
+        ].findIndex((c) => c == p);
+        if (wrongTargetIndex >= 0) {
+          candidatesByTarget[p?.rankTarget?.speciesId ?? ''].splice(
+            wrongTargetIndex,
+            1,
+          );
         }
-        p.rank = {
-          index: potentialTarget.position,
-          percentile: rankPercentile,
-          score: potentialTarget.score,
-          potentialCP: potentialTargetRank.occurence.cp,
-          unqualifiedCandidateCount: getCountOfUnqualifiedCandidates(potentialTarget.speciesId),
-        };
-        potentialTarget.dexId = potentialTargetGM.dex;
-        potentialTarget.gm = potentialTargetGM;
-        p.rankTarget = potentialTarget;
-      } else {
-        // console.log(
-        //   `Pokemon ${p} with CP ${p.stats.cp} already has a better rank (${p.rank?.percentile}%) than the target (${rankPercentile}%)`,p
-        // );
-        getCountOfUnqualifiedCandidates(p.speciesId);
-        return false; // Already has a better rank
-        // if (candidatesByTarget[p?.rankTarget?.speciesId ?? '']) {
-        //   const wrongTargetIndex = candidatesByTarget[p?.rankTarget?.speciesId ?? ''].findIndex((c) => c == p);
-        //   if (wrongTargetIndex >= 0) {
-        //     candidatesByTarget[p?.rankTarget?.speciesId ?? ''].splice(wrongTargetIndex, 1);
-        //   }
-        // }
       }
-      return true;
+      p.rank = {
+        index: potentialTarget.position,
+        percentile: rankPercentile,
+        score: potentialTarget.score,
+        potentialCP: potentialTargetRank!.cp,
+        unqualifiedCandidateCount: getCountOfUnqualifiedCandidates(
+          potentialTarget.speciesId,
+        ),
+      };
+      potentialTarget.dexId = potentialTargetGM.dex;
+      potentialTarget.gm = potentialTargetGM;
+      p.rankTarget = potentialTarget;
+      // } else {
+      //   // console.log(
+      //   //   `Pokemon ${p} with CP ${p.stats.cp} already has a better rank (${p.rank?.percentile}%) than the target (${rankPercentile}%)`,p
+      //   // );
+      //   getCountOfUnqualifiedCandidates(p.speciesId);
+      //   return false; // Already has a better rank
+      //   // if (candidatesByTarget[p?.rankTarget?.speciesId ?? '']) {
+      //   //   const wrongTargetIndex = candidatesByTarget[p?.rankTarget?.speciesId ?? ''].findIndex((c) => c == p);
+      //   //   if (wrongTargetIndex >= 0) {
+      //   //     candidatesByTarget[p?.rankTarget?.speciesId ?? ''].splice(wrongTargetIndex, 1);
+      //   //   }
+      //   // }
+      // }
+      candidates.push(p);
     });
 
     if (candidates.length == 0) {
@@ -150,6 +203,7 @@ export function getCandidates(
     //   p.rankTarget = potentialTarget;
     //   return p;
     // });
+    allCandidates.push(...candidates);
     candidatesByTarget[potentialTarget.speciesId] = candidates;
   }
   // const candidateDexIds = Object.keys(candidatesByTarget).map((key) => candidatesByTarget[key].map((p) => p.dex)).flat();
@@ -159,8 +213,8 @@ export function getCandidates(
   // const filteredDexIds = allDexIds.filter((dexId) => !ranking1500DexIds.includes(dexId));
   // const missingDexIds = new Set(filteredDexIds.filter((dexId) => !candidateDexIds.includes(dexId)));
   // console.log(`Missing Dex IDs: ${Array.from(missingDexIds).join(',')}`);
-
-  return candidatesByTarget ?? null;
+  console.log('Calculated candidates:', allCandidates.length);
+  return Object.values(candidatesByTarget).flat(); //candidatesByTarget ?? null;
 }
 
 /**
@@ -168,24 +222,33 @@ export function getCandidates(
  * cpm array used for calculations, source: https://www.reddit.com/r/TheSilphRoad/comments/jwjbw4/level_4550_expected_cpms_based/
  */
 export const cpm: number[] = [
-  0.0939999967813491, 0.135137430784308, 0.166397869586944, 0.192650914456886, 0.215732470154762, 0.236572655026622,
-  0.255720049142837, 0.273530381100769, 0.29024988412857, 0.306057381335773, 0.321087598800659, 0.335445032295077,
-  0.349212676286697, 0.36245774877879, 0.375235587358474, 0.387592411085168, 0.399567276239395, 0.41119354951725,
-  0.422500014305114, 0.432926413410414, 0.443107545375824, 0.453059953871985, 0.46279838681221, 0.472336077786704,
-  0.481684952974319, 0.490855810259008, 0.499858438968658, 0.508701756943992, 0.517393946647644, 0.525942508771329,
-  0.534354329109191, 0.542635762230353, 0.550792694091796, 0.558830599438087, 0.566754519939422, 0.574569148039264,
-  0.582278907299041, 0.589887911977272, 0.59740000963211, 0.604823657502073, 0.61215728521347, 0.61940411056605,
-  0.626567125320434, 0.633649181622743, 0.640652954578399, 0.647580963301656, 0.654435634613037, 0.661219263506722,
-  0.667934000492096, 0.674581899290818, 0.681164920330047, 0.687684905887771, 0.694143652915954, 0.700542893277978,
-  0.706884205341339, 0.713169102333341, 0.719399094581604, 0.725575616972598, 0.731700003147125, 0.734741011137376,
-  0.737769484519958, 0.740785574597326, 0.743789434432983, 0.746781208702482, 0.749761044979095, 0.752729105305821,
-  0.75568550825119, 0.758630366519684, 0.761563837528228, 0.764486065255226, 0.767397165298461, 0.77029727397159,
-  0.77318650484085, 0.776064945942412, 0.778932750225067, 0.781790064808426, 0.784636974334716, 0.787473583646825,
-  0.790300011634826, 0.792803950958807, 0.795300006866455, 0.79780392148697, 0.800300002098083, 0.802803892322847,
-  0.805299997329711, 0.807803863460723, 0.81029999256134, 0.812803834895026, 0.815299987792968, 0.817803806620319,
-  0.820299983024597, 0.822803778631297, 0.825299978256225, 0.827803750922782, 0.830299973487854, 0.832803753381377,
-  0.835300028324127, 0.837803755931569, 0.840300023555755, 0.842803729034748, 0.845300018787384, 0.847803702398935,
-  0.850300014019012, 0.852803676019539, 0.85530000925064, 0.857803649892077, 0.860300004482269, 0.862803624012168,
+  0.0939999967813491, 0.135137430784308, 0.166397869586944, 0.192650914456886,
+  0.215732470154762, 0.236572655026622, 0.255720049142837, 0.273530381100769,
+  0.29024988412857, 0.306057381335773, 0.321087598800659, 0.335445032295077,
+  0.349212676286697, 0.36245774877879, 0.375235587358474, 0.387592411085168,
+  0.399567276239395, 0.41119354951725, 0.422500014305114, 0.432926413410414,
+  0.443107545375824, 0.453059953871985, 0.46279838681221, 0.472336077786704,
+  0.481684952974319, 0.490855810259008, 0.499858438968658, 0.508701756943992,
+  0.517393946647644, 0.525942508771329, 0.534354329109191, 0.542635762230353,
+  0.550792694091796, 0.558830599438087, 0.566754519939422, 0.574569148039264,
+  0.582278907299041, 0.589887911977272, 0.59740000963211, 0.604823657502073,
+  0.61215728521347, 0.61940411056605, 0.626567125320434, 0.633649181622743,
+  0.640652954578399, 0.647580963301656, 0.654435634613037, 0.661219263506722,
+  0.667934000492096, 0.674581899290818, 0.681164920330047, 0.687684905887771,
+  0.694143652915954, 0.700542893277978, 0.706884205341339, 0.713169102333341,
+  0.719399094581604, 0.725575616972598, 0.731700003147125, 0.734741011137376,
+  0.737769484519958, 0.740785574597326, 0.743789434432983, 0.746781208702482,
+  0.749761044979095, 0.752729105305821, 0.75568550825119, 0.758630366519684,
+  0.761563837528228, 0.764486065255226, 0.767397165298461, 0.77029727397159,
+  0.77318650484085, 0.776064945942412, 0.778932750225067, 0.781790064808426,
+  0.784636974334716, 0.787473583646825, 0.790300011634826, 0.792803950958807,
+  0.795300006866455, 0.79780392148697, 0.800300002098083, 0.802803892322847,
+  0.805299997329711, 0.807803863460723, 0.81029999256134, 0.812803834895026,
+  0.815299987792968, 0.817803806620319, 0.820299983024597, 0.822803778631297,
+  0.825299978256225, 0.827803750922782, 0.830299973487854, 0.832803753381377,
+  0.835300028324127, 0.837803755931569, 0.840300023555755, 0.842803729034748,
+  0.845300018787384, 0.847803702398935, 0.850300014019012, 0.852803676019539,
+  0.85530000925064, 0.857803649892077, 0.860300004482269, 0.862803624012168,
   0.865299999713897,
 ];
 
@@ -197,8 +260,13 @@ export function calculate(
   minLvl: number,
   maxLvl: number,
   invalid: any,
-  league: number
-): { [key: string]: { IVs: { A: number; D: number; S: number; star: string }; CP: number }[] } {
+  league: number,
+): {
+  [key: string]: {
+    IVs: { A: number; D: number; S: number; star: string };
+    CP: number;
+  }[];
+} {
   /* returns sorted list of all (up to 4096) combinations indexed by statProd + CP */ /*console.log("calculate: Received: baseatk="+baseatk+" basedef="+basedef+" basesta="+basesta+" league="+league+" floor="+floor+" minLvl="+minLvl);*/ /* Each item stored by statProd.CP */ /* Rank definition:{"12613615.1500":{"IVs":{"A":14, "D":14, "S":14, "star": "3*"}, "base":{"A":145, "D":105, "S":115}, "battle":{"A":145, "D":105, "S":115}, "L":25}, */
   const ranks: any[number] = [],
     invalids = [];
@@ -211,7 +279,10 @@ export function calculate(
   let minRankLvl = 100;
   let maxRankLvl = 0;
   let numRanks = 0;
-  /* account for half-level CPMs (40-1)*2=78 */ minLvl = Math.max(0, (minLvl - 1) * 2);
+  /* account for half-level CPMs (40-1)*2=78 */ minLvl = Math.max(
+    0,
+    (minLvl - 1) * 2,
+  );
   /* use half-levels */ maxLvl = Math.max(0, (maxLvl - 1) * 2);
   /* use half-levels */ for (let atk = floor / 1; atk <= 15; atk++) {
     for (let def = floor / 1; def <= 15; def++) {
@@ -220,8 +291,13 @@ export function calculate(
           const cp = Math.max(
             10,
             Math.floor(
-              ((baseatk + atk) * Math.sqrt(basedef + def) * Math.sqrt(basesta + sta) * cpm[level] * cpm[level]) / 10
-            )
+              ((baseatk + atk) *
+                Math.sqrt(basedef + def) *
+                Math.sqrt(basesta + sta) *
+                cpm[level] *
+                cpm[level]) /
+                10,
+            ),
           );
           if (league && cp > league) {
             if (level == minLvl && invalid) {
@@ -240,21 +316,30 @@ export function calculate(
           const dSt = (basedef + def) * cpm[level];
           const sSt = Math.max(10, Math.floor((basesta + sta) * cpm[level]));
           const statProd = Math.round(aSt * dSt * sSt);
-          /* update maxStats if necessary */ if (maxAtk.value < aSt || (maxAtk.sp < statProd && maxAtk.value <= aSt)) {
+          /* update maxStats if necessary */ if (
+            maxAtk.value < aSt ||
+            (maxAtk.sp < statProd && maxAtk.value <= aSt)
+          ) {
             maxAtk.value = aSt;
             maxAtk.aIV = atk;
             maxAtk.dIV = def;
             maxAtk.sIV = sta;
             maxAtk.sp = statProd;
           }
-          if (maxDef.value < dSt || (maxDef.sp < statProd && maxDef.value <= dSt)) {
+          if (
+            maxDef.value < dSt ||
+            (maxDef.sp < statProd && maxDef.value <= dSt)
+          ) {
             maxDef.value = dSt;
             maxDef.aIV = atk;
             maxDef.dIV = def;
             maxDef.sIV = sta;
             maxDef.sp = statProd;
           }
-          if (maxHP.value < sSt || (maxHP.sp < statProd && maxHP.value <= sSt)) {
+          if (
+            maxHP.value < sSt ||
+            (maxHP.sp < statProd && maxHP.value <= sSt)
+          ) {
             maxHP.value = sSt;
             maxHP.aIV = atk;
             maxHP.dIV = def;
@@ -264,21 +349,30 @@ export function calculate(
           if (level / 1 > maxRankLvl / 1) {
             maxRankLvl = level;
           }
-          /* update minStats if necessary */ if (minAtk.value > aSt || (minAtk.sp < statProd && minAtk.value >= aSt)) {
+          /* update minStats if necessary */ if (
+            minAtk.value > aSt ||
+            (minAtk.sp < statProd && minAtk.value >= aSt)
+          ) {
             minAtk.value = aSt;
             minAtk.aIV = atk;
             minAtk.dIV = def;
             minAtk.sIV = sta;
             minAtk.sp = statProd;
           }
-          if (minDef.value > dSt || (minDef.sp < statProd && minDef.value >= dSt)) {
+          if (
+            minDef.value > dSt ||
+            (minDef.sp < statProd && minDef.value >= dSt)
+          ) {
             minDef.value = dSt;
             minDef.aIV = atk;
             minDef.dIV = def;
             minDef.sIV = sta;
             minDef.sp = statProd;
           }
-          if (minHP.value > sSt || (minHP.sp < statProd && minHP.value >= sSt)) {
+          if (
+            minHP.value > sSt ||
+            (minHP.sp < statProd && minHP.value >= sSt)
+          ) {
             minHP.value = sSt;
             minHP.aIV = atk;
             minHP.dIV = def;
@@ -306,7 +400,12 @@ export function calculate(
           const newIndex = statProd + '.' + Math.round(100000 * aSt);
           if (!(newIndex in ranks)) {
             ranks[newIndex] = [
-              { IVs: { A: atk, D: def, S: sta, star: Star }, battle: { A: aSt, D: dSt, S: sSt }, L: level, CP: cp },
+              {
+                IVs: { A: atk, D: def, S: sta, star: Star },
+                battle: { A: aSt, D: dSt, S: sSt },
+                L: level,
+                CP: cp,
+              },
             ];
           } else {
             let i;
@@ -322,7 +421,10 @@ export function calculate(
                     /*console.log("Used 5th tie breaker (Stamina IV) for newIndex("+newIndex+"):"+JSON.stringify(ranks[newIndex]));*/ break;
                   } else if (sta == ranks[newIndex][i].IVs.S) {
                     console.log(
-                      'Need 6th tie breaker for newIndex(' + newIndex + '):' + JSON.stringify(ranks[newIndex])
+                      'Need 6th tie breaker for newIndex(' +
+                        newIndex +
+                        '):' +
+                        JSON.stringify(ranks[newIndex]),
                     );
                   }
                 }

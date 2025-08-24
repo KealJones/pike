@@ -71,13 +71,13 @@ export const useAppStore = create<AppState>()(() => ({
     };
   }),
   rankingGreatPromise: fetch(
-    'https://esm.sh/gh/pvpoke/pvpoke/src/data/rankings/gobattleleague/overall/rankings-1500.json' /*'/poke/rankings-1500.json'*/,
+    'https://esm.sh/gh/pvpoke/pvpoke@2551b50/src/data/rankings/gobattleleague/overall/rankings-1500.json' /*'/poke/rankings-1500.json'*/,
   ).then((response) => response.json()),
   rankingUltraPromise: fetch(
-    'https://esm.sh/gh/pvpoke/pvpoke/src/data/rankings/gobattleleague/overall/rankings-2500.json' /*'/poke/rankings-1500.json'*/,
+    'https://esm.sh/gh/pvpoke/pvpoke@2551b50/src/data/rankings/gobattleleague/overall/rankings-2500.json' /*'/poke/rankings-1500.json'*/,
   ).then((response) => response.json()),
   rankingMasterPromise: fetch(
-    'https://esm.sh/gh/pvpoke/pvpoke/src/data/rankings/gobattleleague/overall/rankings-10000.json' /*'/poke/rankings-1500.json'*/,
+    'https://esm.sh/gh/pvpoke/pvpoke@2551b50/src/data/rankings/gobattleleague/overall/rankings-10000.json' /*'/poke/rankings-1500.json'*/,
   ).then((response) => response.json()),
 }));
 

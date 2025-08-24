@@ -13,7 +13,7 @@ export default function AnalysisPage() {
   );
 
   return (
-    <Stack component="main">
+    <Stack component="main" height="100%">
       <Suspense
         fallback={<div>Loading Rankings, GameMaster, and Storage data...</div>}
       >

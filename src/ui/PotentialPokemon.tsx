@@ -49,6 +49,23 @@ export function PotentialPokemon({
     [pokemonStorage, rankPercentFilter, league, gameMaster, rankingListToUse],
   );
 
+  // console log all candidates grouped by gm.family.id
+  const familyGroups = new Map<string, Pokemon[]>();
+  for (const candidate of candidates) {
+    const familyId = candidate?.family.id;
+    if (familyId) {
+      if (!familyGroups.has(familyId)) {
+        familyGroups.set(familyId, []);
+      }
+      familyGroups.get(familyId)?.push(candidate);
+    }
+  }
+  // sort the family groups by the number of candidates in descending order
+  const sortedFamilyGroups = Array.from(familyGroups.entries()).sort(
+    ([, a], [, b]) => b.length - a.length,
+  );
+  console.log('Candidates grouped by family:', sortedFamilyGroups);
+
   const shadowPotentials = useMemo(() => {
     const results = new Map<
       string,
@@ -74,7 +91,7 @@ export function PotentialPokemon({
     return Array.from(results.keys());
   }, [rankingListToUse]);
 
-  console.log('shadowPotentials', shadowPotentials);
+  // console.log('shadowPotentials', shadowPotentials);
 
   if (candidates.length === 0) {
     return (

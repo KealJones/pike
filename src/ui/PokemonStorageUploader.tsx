@@ -1,18 +1,19 @@
 'use client';
 
-import { Typography } from '@mui/material';
-import { use, useState, type ChangeEvent } from 'react';
-import type { GameMasterPromise, Pokemon } from '../types/pokemon.types';
+import {
+  DashboardSidebarPageItem,
+  type NavigationPageItem,
+} from '@toolpad/core';
+import { type ChangeEvent } from 'react';
+import type { GameMasterFile, Pokemon } from '../types/pokemon.types';
 import { buildPokemonStorageJson } from '../utils/buildPokemonStorageJson';
 import { csvToJson } from '../utils/csvToJson';
 
 export const PokemonStorageUploader: React.FC<{
-  gameMasterPromise: GameMasterPromise;
+  gameMaster: GameMasterFile;
   setPokemonStorage: (pokemonStorage: Pokemon[]) => void;
-}> = ({ gameMasterPromise, setPokemonStorage }) => {
-  const [status, setStatus] = useState<string | null>(null);
-  const gameMaster = use(gameMasterPromise);
-
+  item: NavigationPageItem;
+}> = ({ gameMaster, setPokemonStorage, item }) => {
   // useEffect(() => {
   //   // This code runs only on the client-side
   //   //const savedStorage = localStorage.getItem('pokemon-storage');
@@ -29,54 +30,43 @@ export const PokemonStorageUploader: React.FC<{
         const content = e.target?.result as string;
 
         let jsonData;
-        let type = '';
         // Try to parse as JSON
         try {
           jsonData = JSON.parse(content);
-          type = 'json';
         } catch {
           // If not JSON, try CSV
           try {
             jsonData = csvToJson(content);
-            type = 'csv';
           } catch {
-            setStatus('File format not recognized or invalid.');
+            throw new Error('File format not recognized or invalid.');
             return;
           }
         }
         const pokemonStorage = buildPokemonStorageJson(jsonData, gameMaster);
         setPokemonStorage(pokemonStorage);
         // Save to localStorage
-        try {
-          //localStorage.setItem('pokemon-storage', JSON.stringify(pokemonStorage));
-          setStatus(
-            type === 'json'
-              ? 'Saved to localStorage.'
-              : 'Saved to localStorage.',
-          );
-        } catch (err) {
-          setStatus(`Failed to save to localStorage. ${JSON.stringify(err)}`);
-        }
+        throw new Error(`Failed to save to localStorage`);
       };
       reader.onerror = (e: ProgressEvent<FileReader>) => {
         console.error('Error reading file:', e.target?.error);
-        setStatus('Error reading file.');
+        throw new Error('Error reading file.');
       };
       reader.readAsText(file);
-    } else {
-      setStatus(null);
     }
   };
 
   return (
-    <div>
-      {status && (
-        <Typography variant="subtitle1" color="error">
-          {status}
-        </Typography>
-      )}
-      <input type="file" onChange={handleFileChange} />
-    </div>
+    <>
+      <label htmlFor="file-upload">
+        <DashboardSidebarPageItem item={item} LinkComponent={'div'} />
+      </label>
+      <input
+        id="file-upload"
+        type="file"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
+    </>
   );
 };
 

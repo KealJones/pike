@@ -9,6 +9,7 @@ import type {
 import { getPokemonGamemasterData } from './utils/gamemaster';
 
 export interface AppState {
+  league: number;
   gameMasterPromise: Promise<GameMasterFile>;
   rankingGreatPromise: Promise<RankingTarget[]>;
   rankingUltraPromise: Promise<RankingTarget[]>;
@@ -47,6 +48,7 @@ export const usePokemonStorage = create<PokemonStorageState>()(
 );
 
 export const useAppStore = create<AppState>()(() => ({
+  league: 1500,
   gameMasterPromise: fetch(
     'https://esm.sh/gh/pvpoke/pvpoke/src/data/gamemaster.min.json' /*'/poke/gamemaster.json'*/,
   ).then(async (response) => {

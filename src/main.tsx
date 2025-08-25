@@ -24,7 +24,7 @@ const router = createBrowserRouter(
       ],
     },
   ],
-  { basename: '/poke/' },
+  { basename: '/pike/' },
 );
 
 createRoot(document.getElementById('root')!).render(

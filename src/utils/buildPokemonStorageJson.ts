@@ -25,6 +25,8 @@ const formRewriteMap: { [key: string]: string } = {
 function standardizeForm(name: string, form: string): undefined | string {
   // Remove the name prefix from the form in pro entries
   const formClean = form.replace(`${name.toLocaleUpperCase()}_`, '');
+  if (formClean == 'sword' || formClean == 'shield')
+    return `crowned_${formClean}`;
   // Special case for Burmy without form (usually happens cause of poke genie not capturing the context)
   if (name.toLocaleUpperCase() == 'BURMY' && formClean == '') return 'plant';
   // Special case for Oricorio Pom-Pom form because it comes through as "POMPOM" from pro but is referred to as "pom-pom" in the gamemaster.

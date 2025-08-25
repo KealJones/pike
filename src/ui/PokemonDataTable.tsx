@@ -177,7 +177,7 @@ export function PokemonDataTable(props: {
                         width: '60%',
                         height: '60%',
                       }}
-                      src={`/poke/icons/${type.toLowerCase()}.svg`}
+                      src={`/pike/icons/${type.toLowerCase()}.svg`}
                     />
                   </Avatar>
                 );

@@ -1,56 +1,19 @@
-import { Upload } from '@mui/icons-material';
-import {
-  IconButton,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-} from '@mui/material';
-import { useDialogs, type NavigationPageItem } from '@toolpad/core';
-import { UploadStorageDialog } from './UploadStorageDialog';
+import { type NavigationPageItem } from '@toolpad/core';
+import { use } from 'react';
+import { useAppStore, usePokemonStorage } from '../AppStore';
+import PokemonStorageUploader from './PokemonStorageUploader';
 
-export function UploadNavItem({
-  item,
-  mini,
-}: {
-  item: NavigationPageItem;
-  mini: boolean;
-}) {
-  const dialogManager = useDialogs();
+export function UploadNavItem({ item }: { item: NavigationPageItem }) {
+  const gameMasterPromise = useAppStore((state) => state.gameMasterPromise);
+  const gameMaster = use(gameMasterPromise);
+  const setPokemonStorage = usePokemonStorage(
+    (state) => state.updatePokemonStorage,
+  );
   return (
-    <ListItem
-      onClick={() => dialogManager.open(UploadStorageDialog)}
-      sx={(theme) => ({
-        color: theme.palette.secondary.main,
-        overflowX: 'hidden',
-      })}
-    >
-      {mini ? (
-        <IconButton
-          aria-label="upload storage"
-          sx={(theme) => ({
-            color: theme.palette.secondary.main,
-          })}
-        >
-          <Upload />
-        </IconButton>
-      ) : (
-        <ListItemButton>
-          <ListItemIcon
-            sx={(theme) => ({
-              color: theme.palette.secondary.main,
-            })}
-          >
-            <Upload />
-          </ListItemIcon>
-          <ListItemText
-            primary={item.title}
-            sx={{
-              whiteSpace: 'nowrap',
-            }}
-          />
-        </ListItemButton>
-      )}
-    </ListItem>
+    <PokemonStorageUploader
+      gameMaster={gameMaster}
+      setPokemonStorage={setPokemonStorage}
+      item={item}
+    />
   );
 }

@@ -1,70 +1,29 @@
 'use client';
 import { Stack, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import Box from '@mui/material/Box';
-import { use, useMemo, useState } from 'react';
-import type {
-  GameMasterPromise,
-  Pokemon,
-  RankingTarget,
-} from '../types/pokemon.types';
+import { useMemo } from 'react';
+import { useLeague } from '../AppStore';
+import { useGameMaster } from '../hooks/useGameMaster';
+import { useRankingList } from '../hooks/useRankingList';
+import type { Pokemon } from '../types/pokemon.types';
 import { getCandidates } from '../utils/rank';
 import { PokemonDataTable } from './PokemonDataTable';
 
 export function PotentialPokemon({
-  filterRank,
-  gameMasterPromise,
-  rankings1500Promise,
-  rankings2500Promise,
-  rankings50000Promise,
   pokemonStorage,
 }: {
-  filterRank?: number;
-  gameMasterPromise: GameMasterPromise;
-  rankings1500Promise: Promise<RankingTarget[]>;
-  rankings2500Promise: Promise<RankingTarget[]>;
-  rankings50000Promise: Promise<RankingTarget[]>;
   pokemonStorage: Pokemon[];
 }) {
-  const [league, setLeague] = useState(1500);
-  const gameMaster = use(gameMasterPromise);
-  // const rankings1500 = use(rankings1500Promise);
-  // const rankings2500 = use(rankings2500Promise);
-  // const rankings50000 = use(rankings50000Promise);
-  const rankPercentFilter = filterRank ?? 0;
-  const rankingListToUse =
-    league === 1500
-      ? use(rankings1500Promise)
-      : league === 2500
-        ? use(rankings2500Promise)
-        : use(rankings50000Promise);
+  const league = useLeague((state) => state.league);
+  const setLeague = useLeague((state) => state.setLeague);
+  const gameMaster = useGameMaster();
+  const rankingListToUse = useRankingList();
+
   const candidates = useMemo(
     () =>
-      getCandidates(
-        pokemonStorage,
-        rankPercentFilter,
-        league,
-        gameMaster,
-        rankingListToUse,
-      ) ?? [],
-    [pokemonStorage, rankPercentFilter, league, gameMaster, rankingListToUse],
+      getCandidates(pokemonStorage, league, gameMaster, rankingListToUse) ?? [],
+    [pokemonStorage, league, gameMaster, rankingListToUse],
   );
-
-  // console log all candidates grouped by gm.family.id
-  const familyGroups = new Map<string, Pokemon[]>();
-  for (const candidate of candidates) {
-    const familyId = candidate?.family.id;
-    if (familyId) {
-      if (!familyGroups.has(familyId)) {
-        familyGroups.set(familyId, []);
-      }
-      familyGroups.get(familyId)?.push(candidate);
-    }
-  }
-  // sort the family groups by the number of candidates in descending order
-  const sortedFamilyGroups = Array.from(familyGroups.entries()).sort(
-    ([, a], [, b]) => b.length - a.length,
-  );
-  console.log('Candidates grouped by family:', sortedFamilyGroups);
 
   const shadowPotentials = useMemo(() => {
     const results = new Map<

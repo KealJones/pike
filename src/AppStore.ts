@@ -6,53 +6,19 @@ import type {
   Pokemon,
   RankingTarget,
 } from './types/pokemon.types';
+import { fetchJson } from './utils/fetchJson';
 import { getPokemonGamemasterData } from './utils/gamemaster';
 
-export interface AppState {
-  league: number;
+export interface GameMasterState {
+  //gameMaster: GameMasterFile;
+  // setGameMaster: (newGameMaster: GameMasterFile) => void;
   gameMasterPromise: Promise<GameMasterFile>;
-  rankingGreatPromise: Promise<RankingTarget[]>;
-  rankingUltraPromise: Promise<RankingTarget[]>;
-  rankingMasterPromise: Promise<RankingTarget[]>;
 }
 
-export interface PokemonStorageState {
-  pokemonStorage: Pokemon[];
-  updatePokemonStorage: (newPokemon: Pokemon[]) => void;
-}
-
-export const usePokemonFamily = create<PokemonStorageState>()(
-  persist(
-    (set) => ({
-      pokemonStorage: [],
-      updatePokemonStorage: (newPokemon: Pokemon[]) =>
-        set({ pokemonStorage: newPokemon }),
-    }),
-    {
-      name: 'pokemon-storage',
-    },
-  ),
-);
-
-export const usePokemonStorage = create<PokemonStorageState>()(
-  persist(
-    (set) => ({
-      pokemonStorage: [],
-      updatePokemonStorage: (newPokemon: Pokemon[]) =>
-        set({ pokemonStorage: newPokemon }),
-    }),
-    {
-      name: 'pokemon-storage',
-    },
-  ),
-);
-
-export const useAppStore = create<AppState>()(() => ({
-  league: 1500,
-  gameMasterPromise: fetch(
-    'https://esm.sh/gh/pvpoke/pvpoke/src/data/gamemaster.min.json' /*'/poke/gamemaster.json'*/,
-  ).then(async (response) => {
-    const result = await response.json();
+export const useGameMasterPromise = create<GameMasterState>()((_) => ({
+  gameMasterPromise: fetchJson(
+    `https://esm.sh/gh/pvpoke/pvpoke/src/data/gamemaster.min.json`,
+  ).then(async (result) => {
     result.pokemon.map((p: any) => {
       const parentSpeciesIds: string[] = [p.speciesId];
       let parentSpeciesId = p.family?.parent;
@@ -72,16 +38,54 @@ export const useAppStore = create<AppState>()(() => ({
       ),
     };
   }),
-  rankingGreatPromise: fetch(
-    'https://esm.sh/gh/pvpoke/pvpoke@2551b50/src/data/rankings/gobattleleague/overall/rankings-1500.json' /*'/poke/rankings-1500.json'*/,
-  ).then((response) => response.json()),
-  rankingUltraPromise: fetch(
-    'https://esm.sh/gh/pvpoke/pvpoke@2551b50/src/data/rankings/gobattleleague/overall/rankings-2500.json' /*'/poke/rankings-1500.json'*/,
-  ).then((response) => response.json()),
-  rankingMasterPromise: fetch(
-    'https://esm.sh/gh/pvpoke/pvpoke@2551b50/src/data/rankings/gobattleleague/overall/rankings-10000.json' /*'/poke/rankings-1500.json'*/,
-  ).then((response) => response.json()),
 }));
+
+export interface LeagueState {
+  league: number;
+  leagueRankListPromise: Promise<RankingTarget[]>;
+  setLeague: (newLeague: number) => void;
+}
+
+export const useLeague = create<LeagueState>()(
+  //persist(
+  (set) => {
+    const leagueRankListPromise = fetchJson(
+      `https://esm.sh/gh/pvpoke/pvpoke@new-season-2026/src/data/rankings/gobattleleague/overall/rankings-1500.json`,
+    );
+    return {
+      leagueRankListPromise,
+      league: 1500,
+      setLeague: (newLeague: number) => {
+        const leagueRankListPromise = fetchJson(
+          `https://esm.sh/gh/pvpoke/pvpoke@new-season-2026/src/data/rankings/gobattleleague/overall/rankings-${newLeague}.json`,
+        );
+        set({
+          league: newLeague,
+          leagueRankListPromise,
+        });
+      },
+    };
+  },
+  //)
+);
+
+export interface PokemonStorageState {
+  pokemonStorage: Pokemon[];
+  updatePokemonStorage: (newPokemon: Pokemon[]) => void;
+}
+
+export const usePokemonStorage = create<PokemonStorageState>()(
+  persist(
+    (set) => ({
+      pokemonStorage: [],
+      updatePokemonStorage: (newPokemon: Pokemon[]) =>
+        set({ pokemonStorage: newPokemon }),
+    }),
+    {
+      name: 'pokemon-storage',
+    },
+  ),
+);
 
 // https://raw.githubusercontent.com/pvpoke/pvpoke/refs/heads/master/src/data/gamemaster.min.json
 // https://raw.githubusercontent.com/pvpoke/pvpoke/refs/heads/master/src/data/rankings/gobattleleague/overall/rankings-1500.json

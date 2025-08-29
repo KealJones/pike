@@ -5,15 +5,18 @@ import {
   type NavigationPageItem,
 } from '@toolpad/core';
 import { type ChangeEvent } from 'react';
-import type { GameMasterFile, Pokemon } from '../types/pokemon.types';
+import { usePokemonStorage } from '../AppStore';
+import { useGameMaster } from '../hooks/useGameMaster';
 import { buildPokemonStorageJson } from '../utils/buildPokemonStorageJson';
 import { csvToJson } from '../utils/csvToJson';
 
 export const PokemonStorageUploader: React.FC<{
-  gameMaster: GameMasterFile;
-  setPokemonStorage: (pokemonStorage: Pokemon[]) => void;
   item: NavigationPageItem;
-}> = ({ gameMaster, setPokemonStorage, item }) => {
+}> = ({ item }) => {
+  const gameMaster = useGameMaster();
+  const setPokemonStorage = usePokemonStorage(
+    (state) => state.updatePokemonStorage,
+  );
   // useEffect(() => {
   //   // This code runs only on the client-side
   //   //const savedStorage = localStorage.getItem('pokemon-storage');

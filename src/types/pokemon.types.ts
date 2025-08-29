@@ -132,6 +132,7 @@ export interface GamemasterPokemonEntry {
     id: string;
     evolutions?: string[];
     parent?: string;
+    allSpeciesIds: string[];
   };
   tags?: string[];
   level25CP?: number;

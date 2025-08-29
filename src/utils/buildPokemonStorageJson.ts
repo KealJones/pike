@@ -26,8 +26,10 @@ function standardizeForm(name: string, form: string): undefined | string {
   // Remove the name prefix from the form in pro entries
   const formClean = form.replace(`${name.toLocaleUpperCase()}_`, '');
   if (
-    formClean.toLocaleLowerCase() == 'sword' ||
-    formClean.toLocaleLowerCase() == 'shield'
+    (name.toLocaleLowerCase() == 'zamazenta' ||
+      name.toLocaleLowerCase() == 'zacian') &&
+    (formClean.toLocaleLowerCase() == 'sword' ||
+      formClean.toLocaleLowerCase() == 'shield')
   )
     return `crowned_${formClean}`;
   // Special case for Burmy without form (usually happens cause of poke genie not capturing the context)

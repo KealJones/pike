@@ -38,7 +38,6 @@ const rankCache = new Map<string, RankOccurence[]>();
 
 export function getCandidates(
   pokemonStorage: Pokemon[],
-  scoreMin: number,
   cpMax: number,
   gameMaster: GameMasterFile,
   rankingsRaw: RankingTarget[],
@@ -58,9 +57,9 @@ export function getCandidates(
     unqualifiedCandidateCounts[speciesId].count += 1;
     return unqualifiedCandidateCounts[speciesId];
   };
+  const familyGroups = new Map<string, Pokemon[]>();
 
   for (const potentialTarget of rankings) {
-    if (potentialTarget.score <= scoreMin) continue;
     const targetFamilySpeciesIds: string[] = [potentialTarget.speciesId];
 
     const potentialTargetGM = getPokemonGamemasterData(
@@ -93,9 +92,19 @@ export function getCandidates(
     //   false,
     //   cpMax ?? 1500
     // );
+
+    // console log all candidates grouped by gm.family.id
+
     const candidates: Pokemon[] = [];
     pokemonStorage.forEach((pokemon) => {
       const p = { ...pokemon };
+      const familyId = p?.family.id;
+      if (familyId) {
+        if (!familyGroups.has(familyId)) {
+          familyGroups.set(familyId, []);
+        }
+        familyGroups.get(familyId)?.push(p);
+      }
       if (!targetFamilySpeciesIds.includes(p.speciesId)) {
         return false;
       }
@@ -170,6 +179,9 @@ export function getCandidates(
         ),
       };
       potentialTarget.dexId = potentialTargetGM.dex;
+      if (potentialTargetGM.family != null) {
+        potentialTargetGM.family.allSpeciesIds = targetFamilySpeciesIds;
+      }
       potentialTarget.gm = potentialTargetGM;
       p.rankTarget = potentialTarget;
       // } else {
@@ -206,6 +218,12 @@ export function getCandidates(
     allCandidates.push(...candidates);
     candidatesByTarget[potentialTarget.speciesId] = candidates;
   }
+  // sort the family groups by the number of candidates in descending order
+  const sortedFamilyGroups = Array.from(familyGroups.entries()).sort(
+    ([, a], [, b]) => b.length - a.length,
+  );
+  console.log('Candidates grouped by family:', sortedFamilyGroups);
+
   // const candidateDexIds = Object.keys(candidatesByTarget).map((key) => candidatesByTarget[key].map((p) => p.dex)).flat();
   // const allDexIds = gameMaster.pokemon.map((p) => { return p.released ? p.dex : 0});
   // const ranking1500DexIds = rankings.map((p) => getPokemonGamemasterData(p.speciesId, gameMaster)?.dex);

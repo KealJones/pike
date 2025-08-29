@@ -49,6 +49,16 @@ export function PokemonDataTable(props: {
         id: 'targetSpeciesId',
         size: 250,
         grow: true,
+        filterFn: (row, _, filterValue) => {
+          // Custom logic for filtering the ranked target so that you can find by other evolution names (similar to "+" prefix on pvpoke)
+          return (
+            row.original.rankTarget?.gm?.family?.allSpeciesIds.some(
+              (element) =>
+                typeof element === 'string' && element.includes(filterValue),
+            ) ?? false
+          );
+        },
+        enableColumnFilterModes: false,
         accessorFn: (row) =>
           `${row.rank?.index} - ${row.rankTarget?.speciesId}`,
         GroupedCell: ({ row }) => {
@@ -76,6 +86,11 @@ export function PokemonDataTable(props: {
                     {eliteMoves.includes(moveId) ? '*' : ''}
                   </Typography>
                 ))}
+                <Typography variant="caption" color="text.secondary">
+                  {props.shadowPriority.includes(row.original.speciesId)
+                    ? 'Higher rank than non-shadow form'
+                    : ''}
+                </Typography>
               </Stack>
             </Stack>
           );

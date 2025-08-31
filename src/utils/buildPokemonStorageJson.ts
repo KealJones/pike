@@ -6,6 +6,7 @@ import type {
   ProEntry,
 } from '../types/pokemon.types';
 import { getPokemonGamemasterData } from './gamemaster';
+import { objectConvert } from './objectConvert';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isProEntry(entry: any): entry is ProEntry {
@@ -60,8 +61,8 @@ function standardizeMove(move: string | undefined): string | undefined {
 }
 
 /**
- * converts alignment to a standard format
- * e.g., "1" -> "shadow", "SHADOW" -> "shadow"
+ * converts alignment from poke genie or string to a standard format
+ * e.g., "1" -> "shadow", "2" -> "purified" -> "SHADOW" -> "shadow"
  */
 function standardizeAlignment(
   alignment?: string,
@@ -83,7 +84,7 @@ function standardizeAlignment(
 }
 
 /**
- * Neither Poke Genie nor Pro have a direct `speciesId` that can be used to lookup in the gamemaster. So we create one based on the template {NAME}_[{ALIGNMENT}_]{FORM} and fallback to just `name` if the `possibleId` isn't found.
+ * Neither Poke Genie nor Pro have a direct `speciesId` that can be used to lookup in the gamemaster. So we create one based on the template {NAME}[_{ALIGNMENT}]_{FORM} and fallback to just `name` if the `possibleId` isn't found.
  */
 function createSpeciesId(
   name: string,
@@ -125,30 +126,82 @@ export function buildPokemonStorageJson(
   input: any,
   gameMaster: GameMasterFile,
 ): Pokemon[] {
+  // These templates match the final output shape, and all transforms are handled inside
+  const proTemplate = {
+    name: (e: ProEntry) => e.mon_name ?? '',
+    shiny: (e: ProEntry) => e.mon_isshiny === 'YES',
+    lucky: (e: ProEntry) => e.mon_islucky === 'YES',
+    alignment: (e: ProEntry) => standardizeAlignment(e.mon_alignment),
+    form: (e: ProEntry) => {
+      const arr = e.mon_form?.split('_');
+      arr?.shift();
+      return standardizeForm(e.mon_name ?? '', arr?.join('_') ?? '');
+    },
+    moves: (e: ProEntry) => ({
+      fast: standardizeMove(e.mon_move_1),
+      charged: [standardizeMove(e.mon_move_2), standardizeMove(e.mon_move_3)],
+    }),
+    stats: (e: ProEntry) => ({
+      ivs: {
+        attack: e.mon_attack ?? 0,
+        defense: e.mon_defence ?? 0,
+        stamina: e.mon_stamina ?? 0,
+      },
+      battle: {
+        attack: 0,
+        defense: 0,
+        stamina: 0,
+      },
+      cp: e.mon_cp ?? 0,
+    }),
+  };
+
+  const genieTemplate = {
+    name: (e: PokeGenieEntry) => e.Name ?? '',
+    shiny: (_: PokeGenieEntry) => false,
+    lucky: (e: PokeGenieEntry) => e.Lucky === '1',
+    alignment: (e: PokeGenieEntry) =>
+      standardizeAlignment(e['Shadow/Purified']),
+    form: (e: PokeGenieEntry) => standardizeForm(e.Name ?? '', e.Form ?? ''),
+    moves: (e: PokeGenieEntry) => ({
+      fast: standardizeMove(e['Quick Move']),
+      charged: [
+        standardizeMove(e['Charge Move']),
+        standardizeMove(e['Charge Move 2']),
+      ],
+    }),
+    stats: (e: PokeGenieEntry) => ({
+      ivs: {
+        attack: parseInt(e['Atk IV'] ?? '0'),
+        defense: parseInt(e['Def IV'] ?? '0'),
+        stamina: parseInt(e['Sta IV'] ?? '0'),
+      },
+      battle: {
+        attack: 0,
+        defense: 0,
+        stamina: 0,
+      },
+      cp: parseInt(e.CP ?? '0'),
+    }),
+  };
+
   return (Array.isArray(input) ? input : Object.values(input)).map(
     (entry: ProEntry | PokeGenieEntry) => {
       const isPro = isProEntry(entry);
-      let proFormClean: string | undefined = undefined;
-      if (isPro) {
-        const proFormArray = entry.mon_form?.split('_');
-        proFormArray?.shift();
-        proFormClean = proFormArray?.join('_');
-      }
 
-      const form = standardizeForm(
-        isPro ? (entry.mon_name ?? '') : (entry.Name ?? ''),
-        isPro ? (proFormClean ?? '') : (entry.Form ?? ''),
-      );
-      const alignment = standardizeAlignment(
-        isPro ? entry.mon_alignment : entry['Shadow/Purified'],
-      );
+      const normalized = isPro
+        ? objectConvert<ProEntry, Pokemon>(entry as ProEntry, proTemplate)
+        : objectConvert<PokeGenieEntry, Pokemon>(
+            entry as PokeGenieEntry,
+            genieTemplate,
+          );
+
       const speciesId = createSpeciesId(
-        isPro ? (entry.mon_name ?? '') : (entry.Name ?? ''),
-        alignment,
-        form,
+        normalized.name,
+        normalized.alignment,
+        normalized.form,
         gameMaster,
       );
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const {
         fastMoves,
         chargedMoves,
@@ -161,7 +214,6 @@ export function buildPokemonStorageJson(
 
       const parentSpeciesIds: string[] = [gamemasterData.speciesId];
       let parentSpeciesId = family?.parent;
-
       while (parentSpeciesId) {
         const parentEntry = getPokemonGamemasterData(
           parentSpeciesId,
@@ -174,6 +226,7 @@ export function buildPokemonStorageJson(
 
       return {
         ...gamemasterData,
+        ...normalized,
         name:
           gamemasterData.speciesName ??
           speciesId
@@ -184,52 +237,10 @@ export function buildPokemonStorageJson(
             )
             .join(' '),
         speciesId,
-        shiny: isPro ? entry.mon_isshiny == 'YES' : false,
-        lucky: isPro ? entry.mon_islucky == 'YES' : entry.Lucky === '1',
-        alignment,
-        form,
         movePool: {
           fast: fastMoves,
           charged: chargedMoves,
           elite: eliteMoves,
-        },
-        moves: {
-          fast: standardizeMove(isPro ? entry.mon_move_1 : entry['Quick Move']),
-          charged: [
-            standardizeMove(isPro ? entry.mon_move_2 : entry['Charge Move']),
-            standardizeMove(isPro ? entry.mon_move_3 : entry['Charge Move 2']),
-          ],
-        },
-        stats: {
-          ivs: {
-            attack: isPro
-              ? (entry.mon_attack ?? 0)
-              : parseInt(entry['Atk IV'] ?? '0'),
-            defense: isPro
-              ? (entry.mon_defence ?? 0)
-              : parseInt(entry['Def IV'] ?? '0'),
-            stamina: isPro
-              ? (entry.mon_stamina ?? 0)
-              : parseInt(entry['Sta IV'] ?? '0'),
-          },
-          battle: {
-            attack:
-              baseStats.atk +
-              (isPro
-                ? (entry.mon_attack ?? 0)
-                : parseInt(entry['Atk IV'] ?? '0')),
-            defense:
-              baseStats.def +
-              (isPro
-                ? (entry.mon_defence ?? 0)
-                : parseInt(entry['Def IV'] ?? '0')),
-            stamina:
-              baseStats.hp +
-              (isPro
-                ? (entry.mon_stamina ?? 0)
-                : parseInt(entry['Sta IV'] ?? '0')),
-          },
-          cp: isPro ? entry.mon_cp : parseInt(entry.CP ?? '0'),
         },
         baseStats: {
           attack: baseStats.atk,

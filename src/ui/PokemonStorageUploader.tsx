@@ -48,7 +48,7 @@ export const PokemonStorageUploader: React.FC<{
         const pokemonStorage = buildPokemonStorageJson(jsonData, gameMaster);
         setPokemonStorage(pokemonStorage);
         // Save to localStorage
-        throw new Error(`Failed to save to localStorage`);
+        //throw new Error(`Failed to save to localStorage`);
       };
       reader.onerror = (e: ProgressEvent<FileReader>) => {
         console.error('Error reading file:', e.target?.error);

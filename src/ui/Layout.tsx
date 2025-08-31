@@ -5,6 +5,7 @@ import {
 } from '@toolpad/core';
 import { useCallback } from 'react';
 import { Outlet } from 'react-router';
+import { LeaguePicker } from './LeaguePicker';
 import { UploadNavItem } from './UploadNavItem';
 
 export function Layout() {
@@ -22,6 +23,9 @@ export function Layout() {
       renderPageItem={renderPageItem}
       // @ts-expect-error this is typed incorrectly, all props should be entirely optional
       slotProps={{ header: { hideMenuButton: true }, toolbarActions: {} }}
+      slots={{
+        toolbarActions: LeaguePicker,
+      }}
     >
       <Outlet />
     </DashboardLayout>

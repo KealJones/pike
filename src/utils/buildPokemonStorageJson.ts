@@ -92,9 +92,20 @@ function createSpeciesId(
   form: string | undefined,
   gameMaster: { pokemon: GamemasterPokemonEntry[]; [key: string]: unknown },
 ): string {
+  // create a list of all speciesIds in the gamemaster
+  const gameMasterSpeciesIds = gameMaster.pokemon.map((p) => p.speciesId);
+  if (gameMasterSpeciesIds.includes([name, form, alignment].join('_'))) {
+    return [name, form, alignment].join('_');
+  }
+
+  if (name == 'morpeko' && form != 'full_belly') {
+    form = 'full_belly';
+  }
+
   const possibleId = [
     name
       .replace(/-/g, '_')
+      .replace(' ', '_')
       .replace(/clodsiresb/i, 'clodsire')
       .replace(/[^a-zA-Z0-9_]/g, ''),
     form?.replace(/-/g, '_'),
@@ -103,8 +114,7 @@ function createSpeciesId(
     .filter(Boolean)
     .join('_')
     .toLowerCase();
-  // create a list of all speciesIds in the gamemaster
-  const gameMasterSpeciesIds = gameMaster.pokemon.map((p) => p.speciesId);
+
   // Check if the possibleId is in the gamemaster
   if (gameMasterSpeciesIds.includes(possibleId)) {
     return possibleId;

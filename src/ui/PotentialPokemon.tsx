@@ -1,5 +1,4 @@
 'use client';
-import { Stack, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import Box from '@mui/material/Box';
 import { useMemo } from 'react';
 import { useLeague } from '../AppStore';
@@ -15,7 +14,6 @@ export function PotentialPokemon({
   pokemonStorage: Pokemon[];
 }) {
   const league = useLeague((state) => state.league);
-  const setLeague = useLeague((state) => state.setLeague);
   const gameMaster = useGameMaster();
   const rankingListToUse = useRankingList();
 
@@ -62,17 +60,6 @@ export function PotentialPokemon({
 
   return (
     <>
-      <Stack direction="row" alignItems="center">
-        <ToggleButtonGroup
-          onChange={(_, value) => setLeague(value)}
-          value={league}
-          exclusive
-        >
-          <ToggleButton value={1500}>Great League - 1500</ToggleButton>
-          <ToggleButton value={2500}>Ultra League - 2500</ToggleButton>
-          <ToggleButton value={50000}>Master League - 50000</ToggleButton>
-        </ToggleButtonGroup>
-      </Stack>
       <PokemonDataTable
         candidates={candidates}
         gameMaster={gameMaster}

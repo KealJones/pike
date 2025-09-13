@@ -21,7 +21,7 @@ export const LeaguePicker = () => {
         color="text.secondary"
         mr={2}
       >
-        Powered by PvPoke
+        Ranking Data by PvPoke
       </Typography>
       <ToggleButtonGroup
         onChange={(_, value) => setLeague(value)}

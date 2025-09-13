@@ -6,8 +6,12 @@ import type {
   Pokemon,
   RankingTarget,
 } from './types/pokemon.types';
+import type { BuildIvChartsResponse } from './types/workers.types';
 import { fetchJson } from './utils/fetchJson';
 import { getPokemonGamemasterData } from './utils/gamemaster';
+import type { LeagueCpCap } from './utils/leagues';
+
+export let ivChartsCreated: Promise<BuildIvChartsResponse['response']>;
 
 export interface GameMasterState {
   //gameMaster: GameMasterFile;
@@ -18,21 +22,56 @@ export interface GameMasterState {
 export const useGameMasterPromise = create<GameMasterState>()((_) => ({
   gameMasterPromise: fetchJson(
     `https://esm.sh/gh/pvpoke/pvpoke/src/data/gamemaster.min.json`,
-  ).then(async (result) => {
-    result.pokemon.map((p: any) => {
-      const parentSpeciesIds: string[] = [p.speciesId];
-      let parentSpeciesId = p.family?.parent;
-      while (parentSpeciesId) {
-        const parentEntry = getPokemonGamemasterData(parentSpeciesId, result);
-        if (!parentEntry) break;
-        parentSpeciesIds.push(parentEntry.speciesId);
-        parentSpeciesId = parentEntry.family?.parent;
-      }
-      return { ...p, parentSpeciesIds };
-    });
+  ).then(async (result: GameMasterFile) => {
+    // ivChartsCreated = ivChartWorkerController.postMessage({
+    //   name: 'buildIvCharts',
+    //   pokemon: result.pokemon,
+    // });
+
+    // Promise.all(rankIvChart2500Promises).then((result) => {
+    //   const myMap = new Map<string, RankOccurence[]>();
+    //   result.forEach((entry) => {
+    //     myMap.set(entry.key, entry.value);
+    //   });
+    //   useRankIvChart.getState().setRankIvChart2500(myMap);
+    // });
+    // Promise.all(rankIvChart10000Promises).then((result) => {
+    //   const myMap = new Map<string, RankOccurence[]>();
+    //   result.forEach((entry) => {
+    //     myMap.set(entry.key, entry.value);
+    //   });
+    //   useRankIvChart.getState().setRankIvChart10000(myMap);
+    // });
+
+    const pokemon = Object.fromEntries(
+      // It will always be an array coming in, we covert it to the keyed object here.
+      Array.isArray(result.pokemon)
+        ? result.pokemon.map((p: any) => {
+            const parentSpeciesIds: string[] = [p.speciesId];
+            let parentSpeciesId = p.family?.parent;
+            while (parentSpeciesId) {
+              const parentEntry = getPokemonGamemasterData(
+                parentSpeciesId,
+                result,
+              );
+              if (!parentEntry) break;
+              parentSpeciesIds.push(parentEntry.speciesId);
+              parentSpeciesId = parentEntry.family?.parent;
+            }
+            return [
+              p.speciesId,
+              {
+                ...p,
+                family: { ...p.family, parentSpeciesIds },
+              },
+            ];
+          })
+        : [],
+    );
 
     return {
       ...result,
+      pokemon,
       movesById: Object.fromEntries(
         result.moves.map((move: GameMasterMove) => [move.moveId, move]),
       ),
@@ -41,24 +80,34 @@ export const useGameMasterPromise = create<GameMasterState>()((_) => ({
 }));
 
 export interface LeagueState {
-  league: number;
+  league: LeagueCpCap;
   leagueRankListPromise: Promise<RankingTarget[]>;
-  setLeague: (newLeague: number) => void;
+  setLeague: (newLeague: LeagueCpCap) => void;
 }
 
 export const useLeague = create<LeagueState>()(
   //persist(
   (set) => {
     const leagueRankListPromise = fetchJson(
-      `https://esm.sh/gh/pvpoke/pvpoke@new-season-2026/src/data/rankings/gobattleleague/overall/rankings-1500.json`,
-    );
+      `https://esm.sh/gh/pvpoke/pvpoke/src/data/rankings/gobattleleague/overall/rankings-1500.json`,
+    ).then((result: RankingTarget[]) => {
+      return result.map((item, index) => ({
+        ...item,
+        position: index + 1,
+      }));
+    });
     return {
       leagueRankListPromise,
       league: 1500,
-      setLeague: (newLeague: number) => {
+      setLeague: (newLeague: LeagueCpCap) => {
         const leagueRankListPromise = fetchJson(
-          `https://esm.sh/gh/pvpoke/pvpoke@new-season-2026/src/data/rankings/gobattleleague/overall/rankings-${newLeague}.json`,
-        );
+          `https://esm.sh/gh/pvpoke/pvpoke/src/data/rankings/gobattleleague/overall/rankings-${newLeague}.json`,
+        ).then((result: RankingTarget[]) => {
+          return result.map((item, index) => ({
+            ...item,
+            position: index + 1,
+          }));
+        });
         set({
           league: newLeague,
           leagueRankListPromise,

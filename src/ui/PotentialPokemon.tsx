@@ -1,27 +1,55 @@
 'use client';
-import Box from '@mui/material/Box';
-import { useMemo } from 'react';
-import { useLeague } from '../AppStore';
+import { useEffect, useMemo, useState } from 'react';
+import { ivChartsCreated, useLeague, usePokemonStorage } from '../AppStore';
 import { useGameMaster } from '../hooks/useGameMaster';
 import { useRankingList } from '../hooks/useRankingList';
 import type { Pokemon } from '../types/pokemon.types';
 import { getCandidates } from '../utils/rank';
 import { PokemonDataTable } from './PokemonDataTable';
 
-export function PotentialPokemon({
-  pokemonStorage,
-}: {
-  pokemonStorage: Pokemon[];
-}) {
+export function PotentialPokemon() {
   const league = useLeague((state) => state.league);
   const gameMaster = useGameMaster();
   const rankingListToUse = useRankingList();
+  const pokemonStorage = usePokemonStorage((state) => state.pokemonStorage);
+  const [candidates, setCandidates] = useState<Pokemon[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const candidates = useMemo(
-    () =>
-      getCandidates(pokemonStorage, league, gameMaster, rankingListToUse) ?? [],
-    [pokemonStorage, league, gameMaster, rankingListToUse],
-  );
+  useEffect(() => {
+    let cancel = (_?: any) => {};
+    let isMounted = true;
+    let p = new Promise((resolve) => {
+      cancel = resolve;
+    });
+    Promise.race([
+      p,
+      (async () => {
+        if (isMounted) {
+          setIsLoading(true);
+        }
+        await ivChartsCreated;
+        const start = performance.now();
+        const result = await getCandidates(
+          pokemonStorage,
+          league,
+          gameMaster,
+          rankingListToUse,
+        );
+        console.log(
+          `getCandidates results took ${performance.now() - start}ms:`,
+          result,
+        );
+        if (isMounted) {
+          setCandidates(result ?? []);
+          setIsLoading(false);
+        }
+      })(),
+    ]);
+    return () => {
+      cancel();
+      isMounted = false;
+    };
+  }, [pokemonStorage, league, gameMaster, rankingListToUse]);
 
   const shadowPotentials = useMemo(() => {
     const results = new Map<
@@ -30,38 +58,48 @@ export function PotentialPokemon({
     >();
     // loop over rankings1500 and find shadow pokemon that are at a higher index than their non-shadow counterparts
     for (const [index, r] of rankingListToUse.entries()) {
+      const rank = r.position;
       if (r.speciesId.includes('_shadow')) {
-        console.log(r);
-        const nonShadowIndex = rankingListToUse.findIndex(
+        //console.log(r);
+        const nonShadowIndex = rankingListToUse.find(
           (nonShadow) =>
-            nonShadow.speciesId.replace('_shadow', '') ===
-              r.speciesId.replace('_shadow', '') &&
+            nonShadow.speciesId === r.speciesId.replace('_shadow', '') &&
             !nonShadow.speciesId.includes('_shadow'),
         );
-        if (nonShadowIndex !== -1 && index < nonShadowIndex) {
+        if (nonShadowIndex != null && rank < nonShadowIndex.position) {
           if (!results.has(r.speciesId)) {
-            results.set(r.speciesId, { nonShadowIndex, shadowIndex: index });
+            results.set(r.speciesId, {
+              nonShadowIndex: nonShadowIndex.position,
+              shadowIndex: index,
+            });
           }
         }
       }
     }
-    return Array.from(results.keys());
+    console.log('shadowPotentials results:', results);
+    return results;
   }, [rankingListToUse]);
+  //console.log('shadowPotentials:', shadowPotentials);
 
-  // console.log('shadowPotentials', shadowPotentials);
-
-  if (candidates.length === 0) {
-    return (
-      <>
-        <Box sx={{ padding: '20px' }}>No candidates.</Box>
-      </>
-    );
-  }
+  // if (candidates !== undefined && candidates?.length === 0) {
+  //   return (
+  //     <>
+  //       <Box sx={{ padding: '20px' }}>No candidates .</Box>
+  //     </>
+  //   );
+  // } else if (candidates === undefined) {
+  //   return (
+  //     <>
+  //       <Box sx={{ padding: '20px' }}>Loading candidates...</Box>
+  //     </>
+  //   );
+  // }
 
   return (
     <>
       <PokemonDataTable
-        candidates={candidates}
+        isLoading={isLoading}
+        candidates={candidates ?? []}
         gameMaster={gameMaster}
         league={league}
         shadowPriority={shadowPotentials}

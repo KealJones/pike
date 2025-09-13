@@ -3,7 +3,6 @@ import './App.css';
 import { Upload } from '@mui/icons-material';
 import type { Navigation } from '@toolpad/core/AppProvider';
 import { ReactRouterAppProvider } from '@toolpad/core/react-router';
-import { DialogsProvider } from '@toolpad/core/useDialogs';
 import { Outlet } from 'react-router';
 import { Logo } from './ui/Logo';
 import theme from './ui/theme';
@@ -28,9 +27,7 @@ function App() {
       branding={BRANDING}
       theme={theme}
     >
-      <DialogsProvider>
-        <Outlet />
-      </DialogsProvider>
+      <Outlet />
     </ReactRouterAppProvider>
   );
 }

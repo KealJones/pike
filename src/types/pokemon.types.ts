@@ -1,3 +1,5 @@
+import type { RankOccurence } from '../utils/rank-calculator';
+
 export interface ProEntry {
   mon_isshiny?: 'YES' | 'NO';
   mon_islucky?: 'YES' | 'NO';
@@ -101,7 +103,7 @@ export interface UniquePokemonDetails {
 
 export type GameMasterPromise = Promise<GameMasterFile>;
 export type GameMasterFile = {
-  pokemon: GamemasterPokemonEntry[];
+  pokemon: GamemasterPokemonEntry[] | { [key: string]: GamemasterPokemonEntry };
   moves: GameMasterMove[];
   movesById: { [key: string]: GameMasterMove };
   [key: string]: unknown;
@@ -132,12 +134,13 @@ export interface GamemasterPokemonEntry {
     id: string;
     evolutions?: string[];
     parent?: string;
-    allSpeciesIds: string[];
+    parentSpeciesIds?: string[];
   };
   tags?: string[];
   level25CP?: number;
   searchPriority?: number;
   eliteMoves?: string[];
+  rankIvChart?: RankOccurence[];
 }
 
 export const pokemonTypes: PokemonType[] = [
@@ -233,7 +236,7 @@ export interface Pokemon extends UniquePokemonDetails {
      * `parent` is the `speciesId` of the pokemon this evolves from.
      */
     parent?: string;
-    allParentSpeciesIds: string[];
+    parentSpeciesIds?: string[];
   };
   /**
    * Includes regional form, e.g., "galarian" or "alolan"

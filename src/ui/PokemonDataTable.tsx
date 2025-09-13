@@ -35,12 +35,13 @@ const typeColors: Record<PokemonType, string> = {
 };
 
 export function PokemonDataTable(props: {
+  isLoading?: boolean;
   candidates: Pokemon[];
   league: number;
   gameMaster: GameMasterFile;
-  shadowPriority: Array<string>;
+  shadowPriority: Map<string, { nonShadowIndex: number; shadowIndex: number }>;
 }) {
-  //const state = use
+  const shadowPriorityKeys = Array.from(props.shadowPriority.keys());
   const columns = useMemo<MRT_ColumnDef<Pokemon>[]>(
     //column definitions...
     () => [
@@ -52,7 +53,7 @@ export function PokemonDataTable(props: {
         filterFn: (row, _, filterValue) => {
           // Custom logic for filtering the ranked target so that you can find by other evolution names (similar to "+" prefix on pvpoke)
           return (
-            row.original.rankTarget?.gm?.family?.allSpeciesIds.some(
+            row.original.rankTarget?.gm?.family?.parentSpeciesIds?.some(
               (element) =>
                 typeof element === 'string' && element.includes(filterValue),
             ) ?? false
@@ -70,26 +71,44 @@ export function PokemonDataTable(props: {
               <Stack direction="row" alignItems="center" spacing={1}>
                 <Box component="span">
                   #{row.original.rank?.index} -{' '}
-                  {row.original.rankTarget?.speciesId.toUpperCase()} (
+                  {row.original.rankTarget?.speciesName} (
                   {row.getLeafRows().length})
                 </Box>
                 <Avatar
                   src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${
-                    row.original.shiny ? 'shiny/' : ''
+                    '' //row.original.shiny ? 'shiny/' : ''
                   }${row.original.rankTarget?.dexId}.png`}
                 />
               </Stack>
               <Stack direction={'column'}>
                 {optimalMoveset.map((moveId) => (
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    key={moveId}
+                  >
                     {props.gameMaster.movesById[moveId].name}
                     {eliteMoves.includes(moveId) ? '*' : ''}
                   </Typography>
                 ))}
                 <Typography variant="caption" color="text.secondary">
-                  {props.shadowPriority.includes(row.original.speciesId)
-                    ? 'Higher rank than non-shadow form'
-                    : ''}
+                  {shadowPriorityKeys.includes(
+                    row.original.rankTarget?.speciesId ?? '',
+                  )
+                    ? `Non-Shadow Form (Rank #${
+                        props.shadowPriority.get(
+                          row.original.rankTarget?.speciesId ?? '',
+                        )?.nonShadowIndex
+                      })`
+                    : shadowPriorityKeys.includes(
+                          `${row.original.rankTarget?.speciesId}_shadow`,
+                        )
+                      ? `Shadow Form (Rank #${
+                          props.shadowPriority.get(
+                            `${row.original.rankTarget?.speciesId}_shadow`,
+                          )?.shadowIndex
+                        })`
+                      : ''}
                 </Typography>
               </Stack>
             </Stack>
@@ -127,6 +146,14 @@ export function PokemonDataTable(props: {
         header: 'Species ID',
         id: 'speciesId',
         accessorFn: (row) => row.speciesId,
+        Cell: ({ cell, row }) =>
+          `${row.original.shiny ? '✨ ' : ''}${cell.getValue<string>()}`,
+      },
+      {
+        header: 'Shiny',
+        id: 'shiny',
+        accessorFn: (row) => row.shiny,
+        enableHiding: true,
       },
       {
         header: 'CP',
@@ -183,7 +210,11 @@ export function PokemonDataTable(props: {
                 }
                 return (
                   <Avatar
-                    sx={{ bgcolor: typeColors[type as PokemonType] }}
+                    sx={{
+                      bgcolor: typeColors[type as PokemonType],
+                      width: 24,
+                      height: 24,
+                    }}
                     key={type}
                   >
                     <Box
@@ -214,16 +245,16 @@ export function PokemonDataTable(props: {
         accessorFn: (row) => row.stats?.ivs.attack,
       },
       {
-        header: 'Stamina IV',
-        id: 'staminaIv',
-        grow: true,
-        accessorFn: (row) => row.stats?.ivs.stamina,
-      },
-      {
         header: 'Defense IV',
         id: 'defenseIv',
         grow: true,
         accessorFn: (row) => row.stats?.ivs.defense,
+      },
+      {
+        header: 'Stamina IV',
+        id: 'staminaIv',
+        grow: true,
+        accessorFn: (row) => row.stats?.ivs.stamina,
       },
       // {
       //   header: 'Age',
@@ -249,7 +280,6 @@ export function PokemonDataTable(props: {
   const table = useMaterialReactTable({
     columns,
     data: props.candidates,
-
     enableGrouping: true,
     enableStickyHeader: true,
     enableColumnOrdering: true,
@@ -257,11 +287,14 @@ export function PokemonDataTable(props: {
     enableColumnResizing: true,
     enableColumnFilterModes: true,
     enableRowVirtualization: true,
+    muiToolbarAlertBannerProps: undefined,
+    state: { isLoading: props.isLoading ?? false },
     initialState: {
+      density: 'compact',
       expanded: true, //expand all groups by default
       grouping: ['targetSpeciesId'], //an array of columns to group by by default (can be multiple)
       //pagination: { pageIndex: 0, pageSize: 100 },
-      columnVisibility: { unqualifiedCandidates: false },
+      columnVisibility: { unqualifiedCandidates: false, shiny: false },
       sorting: [
         {
           id: 'targetSpeciesId', // The accessor or id of the column to sort by
@@ -287,7 +320,7 @@ export function PokemonDataTable(props: {
         return filterValue.some((filter) => value.includes(filter));
       },
       allOf: (row, id, filterValue: string[]) => {
-        console.log('allOf filterValue', filterValue);
+        //console.log('allOf filterValue', filterValue);
         const rawValue: string = row.getValue(id);
         const value = rawValue.split(',').map((v) => v.trim());
         return filterValue.every((filter) => {
@@ -307,9 +340,8 @@ export function PokemonDataTable(props: {
     muiTableBodyRowProps: ({ row }) => ({
       //conditionally style selected rows
       sx: {
-        backgroundColor: props.shadowPriority.includes(row.original.speciesId)
-          ? 'purple'
-          : row.original.rank?.potentialCP == row.original.stats?.cp
+        backgroundColor:
+          row.original.rank?.potentialCP == row.original.stats?.cp
             ? 'green'
             : undefined,
       },

@@ -22,7 +22,7 @@ export function Layout() {
       defaultSidebarCollapsed
       renderPageItem={renderPageItem}
       // @ts-expect-error this is typed incorrectly, all props should be entirely optional
-      slotProps={{ header: { hideMenuButton: true }, toolbarActions: {} }}
+      slotProps={{ header: { hideMenuButton: true } }}
       slots={{
         toolbarActions: LeaguePicker,
       }}

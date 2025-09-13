@@ -8,20 +8,43 @@ export function getPokemonGamemasterData(
   speciesId: string,
   gameMaster: GameMasterFile,
 ): GamemasterPokemonEntry {
-  let entry = gameMaster.pokemon.find((p) => p.speciesId === speciesId);
+  let potentialSpeciesId = speciesId;
+  let entry = Array.isArray(gameMaster.pokemon)
+    ? gameMaster.pokemon.find((p) => p.speciesId === potentialSpeciesId)
+    : gameMaster.pokemon[potentialSpeciesId];
   if (!entry) {
-    console.warn(`No gamemaster data found for speciesId: ${speciesId}`);
+    console.warn(
+      `No gamemaster data found for speciesId: ${potentialSpeciesId}`,
+    );
+
     // That particular speciesId might be a form or variant that is not directly listed in the gamemaster.
     // For example, "pikachu_gofest_2025_goggles_red"
     // In this case, we take the base speciesId (e.g., "pikachu") and find the entry for that.
-    entry = gameMaster.pokemon.find(
-      (p) => p.speciesId === speciesId.split('_')[0],
-    );
+    while (entry == null) {
+      const speciesIdParts = potentialSpeciesId.split('_');
+
+      speciesIdParts.pop();
+      potentialSpeciesId = speciesIdParts.join('_');
+      entry = Array.isArray(gameMaster.pokemon)
+        ? gameMaster.pokemon.find((p) => p.speciesId === potentialSpeciesId)
+        : gameMaster.pokemon[potentialSpeciesId];
+      if (!entry) {
+        console.warn(
+          `No gamemaster data found for speciesId: ${potentialSpeciesId}`,
+        );
+      } else {
+        console.info(
+          `Found gamemaster data for speciesId: ${potentialSpeciesId}`,
+        );
+        break;
+      }
+      if (speciesIdParts.length <= 1 && !entry) break;
+    }
+
     if (!entry) {
-      console.warn(
-        `No gamemaster data found for speciesId: ${speciesId.split('_')[0]}`,
+      throw new Error(
+        `No gamemaster data found for speciesId: ${potentialSpeciesId}`,
       );
-      throw new Error(`No gamemaster data found for speciesId: ${speciesId}`);
     }
   }
   return entry;

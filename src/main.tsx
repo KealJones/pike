@@ -3,10 +3,12 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import App from './App.tsx';
+import './AppStore.ts';
 import './index.css';
 import AnalysisPage from './pages/index.tsx';
 import { Layout } from './ui/Layout.tsx';
 import theme from './ui/theme.ts';
+
 const router = createBrowserRouter(
   [
     {

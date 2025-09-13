@@ -135,6 +135,55 @@ export function buildRank({
   });
 }
 
+export function buildIvChart({
+  pokedexEntry,
+  maxCP,
+  maxLevel = 40,
+  minimumStatValue: minStat = 0,
+}: BuildRankRequest): Record<string, RankOccurence> {
+  const rankEntries = [];
+  for (let attackStat = 15; attackStat >= minStat; attackStat -= 1) {
+    for (let defenseStat = 15; defenseStat >= minStat; defenseStat -= 1) {
+      for (let healthStat = 15; healthStat >= minStat; healthStat -= 1) {
+        const initialIndex = levelToIndex({ level: maxLevel });
+        for (let levelIndex = initialIndex; levelIndex >= 0; levelIndex -= 1) {
+          const products = calculateProducts({
+            pokedexEntry,
+            attackStat,
+            defenseStat,
+            healthStat,
+            levelConstant: levelConstants[levelIndex],
+          });
+          if (products.cp <= maxCP) {
+            rankEntries.push({
+              attackStat,
+              defenseStat,
+              healthStat,
+              level: indexToLevel({ index: levelIndex }),
+              ...products,
+            });
+            break;
+          }
+        }
+      }
+    }
+  }
+  const rankSorted = rankEntries
+    .sort((a, b) => b.product - a.product)
+    .map((data, index) => {
+      return { ...data, rank: index + 1 };
+    });
+
+  return Object.fromEntries(
+    rankSorted.map((data, index) => {
+      return [
+        `${data.attackStat}/${data.defenseStat}/${data.healthStat}`,
+        { ...data, rank: index + 1 },
+      ];
+    }),
+  );
+}
+
 export default function calculateRank({
   pokedexEntry,
   refAttackStat,

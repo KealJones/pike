@@ -9,9 +9,13 @@ export function getPokemonGamemasterData(
   gameMaster: GameMasterFile,
 ): GamemasterPokemonEntry {
   let potentialSpeciesId = speciesId;
+  if (potentialSpeciesId.includes('morpeko')) {
+    potentialSpeciesId = 'morpeko_full_belly';
+  }
   let entry = Array.isArray(gameMaster.pokemon)
     ? gameMaster.pokemon.find((p) => p.speciesId === potentialSpeciesId)
     : gameMaster.pokemon[potentialSpeciesId];
+
   if (!entry) {
     console.warn(
       `No gamemaster data found for speciesId: ${potentialSpeciesId}`,

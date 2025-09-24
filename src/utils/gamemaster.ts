@@ -12,6 +12,9 @@ export function getPokemonGamemasterData(
   if (potentialSpeciesId.includes('morpeko')) {
     potentialSpeciesId = 'morpeko_full_belly';
   }
+  if (potentialSpeciesId == 'clodsiresb') {
+    potentialSpeciesId = 'clodsire';
+  }
   let entry = Array.isArray(gameMaster.pokemon)
     ? gameMaster.pokemon.find((p) => p.speciesId === potentialSpeciesId)
     : gameMaster.pokemon[potentialSpeciesId];

@@ -32,6 +32,9 @@ importers:
       d3-fetch:
         specifier: ^3.0.1
         version: 3.0.1
+      filtrex:
+        specifier: ^3.1.0
+        version: 3.1.0
       idb-keyval:
         specifier: ^6.2.2
         version: 6.2.2
@@ -1282,6 +1285,9 @@ packages:
   fill-range@7.1.1:
     resolution: {integrity: sha512-YsGpe3WHLK8ZYi4tWDg2Jy3ebRz2rXowDxnld4bkQB00cc/1Zw9AWnC0i9ztDJitivtQvaI9KaLyKrc+hBW0yg==}
     engines: {node: '>=8'}
+
+  filtrex@3.1.0:
+    resolution: {integrity: sha512-mHzZ2wUISETF1OaEcNRiGz1ljuIV8c/C9td9qyAZ+wTwigkAk5RO9YrCxQKk5H9v7joDRFIBik9U5RTK9eXZ/A==}
 
   find-root@1.1.0:
     resolution: {integrity: sha512-NKfW6bec6GfKc0SGx1e07QZY9PE99u0Bft/0rzSD5k3sO/vwkVUpDUKVm5Gpp5Ue3YfShPFTX2070tDs5kB9Ng==}
@@ -3305,6 +3311,8 @@ snapshots:
   fill-range@7.1.1:
     dependencies:
       to-regex-range: 5.0.1
+
+  filtrex@3.1.0: {}
 
   find-root@1.1.0: {}
 

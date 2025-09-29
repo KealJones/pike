@@ -3,6 +3,7 @@ import './App.css';
 import { Upload } from '@mui/icons-material';
 import type { Navigation } from '@toolpad/core/AppProvider';
 import { ReactRouterAppProvider } from '@toolpad/core/react-router';
+import { DialogsProvider } from '@toolpad/core/useDialogs';
 import { Outlet } from 'react-router';
 import { Logo } from './ui/Logo';
 import theme from './ui/theme';
@@ -13,6 +14,14 @@ const NAVIGATION: Navigation = [
     icon: <Upload />,
     //segment: 'upload',
   },
+  // {
+  //   title: 'How to use',
+  //   icon: <Help />,
+  // },
+  // {
+  //   title: 'Feedback',
+  //   icon: <Feedback />,
+  // },
 ];
 
 const BRANDING = {
@@ -27,7 +36,9 @@ function App() {
       branding={BRANDING}
       theme={theme}
     >
-      <Outlet />
+      <DialogsProvider>
+        <Outlet />
+      </DialogsProvider>
     </ReactRouterAppProvider>
   );
 }

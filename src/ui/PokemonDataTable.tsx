@@ -1,6 +1,7 @@
 import { Avatar, Box, MenuItem, Stack, Typography } from '@mui/material';
 import {
   MaterialReactTable,
+  MRT_FilterFns,
   useMaterialReactTable,
   type MRT_ColumnDef,
 } from 'material-react-table';
@@ -50,13 +51,22 @@ export function PokemonDataTable(props: {
         id: 'targetSpeciesId',
         size: 250,
         grow: true,
-        filterFn: (row, _, filterValue) => {
-          // Custom logic for filtering the ranked target so that you can find by other evolution names (similar to "+" prefix on pvpoke)
+        filterFn: (row, _, filterValue, addMeta) => {
           return (
-            row.original.rankTarget?.gm?.family?.parentSpeciesIds?.some(
-              (element) =>
-                typeof element === 'string' && element.includes(filterValue),
-            ) ?? false
+            MRT_FilterFns.fuzzy(row, _, filterValue, addMeta) ||
+            // Custom logic for filtering the ranked target so that you can find by other evolution names (similar to "+" prefix on pvpoke)
+            // TODO: Could add alot more search/filter features similar to PvPoke or PokemonGo https://niantic.helpshift.com/hc/en/6-pokemon-go/faq/1486-searching-filtering-your-pokemon-inventory/
+            (row.original.rankTarget?.gm?.family?.parentSpeciesIds?.some(
+              (element) => {
+                if (typeof element === 'string') {
+                  // Filtering should be case insensitive
+                  return element
+                    .toLowerCase()
+                    .includes(filterValue.toLowerCase());
+                }
+              },
+            ) ??
+              false)
           );
         },
         enableColumnFilterModes: false,
@@ -64,15 +74,23 @@ export function PokemonDataTable(props: {
           `${row.rank?.index} - ${row.rankTarget?.speciesId}`,
         GroupedCell: ({ row }) => {
           //const { grouping } = table.getState();
+          const pvpokeRankScore = row.original.rankTarget?.score ?? 0;
           const optimalMoveset = row.original.rankTarget?.moveset ?? [];
           const eliteMoves = row.original?.rankTarget?.gm?.eliteMoves ?? [];
           return (
             <Stack direction="column" alignItems="center" spacing={1}>
               <Stack direction="row" alignItems="center" spacing={1}>
                 <Box component="span">
-                  #{row.original.rank?.index} -{' '}
-                  {row.original.rankTarget?.speciesName} (
-                  {row.getLeafRows().length})
+                  <Typography display="inline">
+                    #{row.original.rank?.index} -{' '}
+                  </Typography>
+                  <Typography sx={{ fontWeight: '500', display: 'inline' }}>
+                    {row.original.rankTarget?.speciesName}
+                  </Typography>{' '}
+                  <Typography display="inline">
+                    ({row.getLeafRows().length})
+                  </Typography>
+                  <Typography>Score: {pvpokeRankScore}</Typography>
                 </Box>
                 <Avatar
                   src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${
@@ -116,10 +134,10 @@ export function PokemonDataTable(props: {
         },
       },
       {
-        header: 'Unqualified Candidates',
-        id: 'unqualifiedCandidates',
+        header: 'PvPoke Score',
+        id: 'pvpokeScore',
         enableHiding: true,
-        accessorFn: (row) => row.rank?.unqualifiedCandidateCount?.count ?? 0,
+        accessorFn: (row) => row.rankTarget?.score ?? 0,
       },
       {
         header: 'Rank Percentile',
@@ -239,6 +257,16 @@ export function PokemonDataTable(props: {
         accessorFn: (row) => row.rank?.potentialCP,
       },
       {
+        header: 'Shadow Form is ranked higher',
+        id: 'shadowRankedHigher',
+        filterVariant: 'select', // This will render a checkbox in the filter
+        accessorFn: (row) =>
+          shadowPriorityKeys.includes(row.rankTarget?.speciesId ?? '')
+            ? 'True'
+            : 'False',
+        filterSelectOptions: ['True', 'False'],
+      },
+      {
         header: 'Attack IV',
         id: 'attackIv',
         grow: true,
@@ -294,7 +322,10 @@ export function PokemonDataTable(props: {
       expanded: true, //expand all groups by default
       grouping: ['targetSpeciesId'], //an array of columns to group by by default (can be multiple)
       //pagination: { pageIndex: 0, pageSize: 100 },
-      columnVisibility: { unqualifiedCandidates: false, shiny: false },
+      columnVisibility: {
+        shiny: false,
+        pvpokeScore: false,
+      },
       sorting: [
         {
           id: 'targetSpeciesId', // The accessor or id of the column to sort by

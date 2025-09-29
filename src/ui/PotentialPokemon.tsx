@@ -4,6 +4,7 @@ import { ivChartsCreated, useLeague, usePokemonStorage } from '../AppStore';
 import { useGameMaster } from '../hooks/useGameMaster';
 import { useRankingList } from '../hooks/useRankingList';
 import type { Pokemon } from '../types/pokemon.types';
+// import { getPokemonGamemasterData } from '../utils/gamemaster';
 import { getCandidates } from '../utils/rank';
 import { PokemonDataTable } from './PokemonDataTable';
 
@@ -14,6 +15,30 @@ export function PotentialPokemon() {
   const pokemonStorage = usePokemonStorage((state) => state.pokemonStorage);
   const [candidates, setCandidates] = useState<Pokemon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // const rankingIds = rankingListToUse
+  //   .map(
+  //     (r) =>
+  //       getPokemonGamemasterData(r.speciesId, gameMaster)?.family
+  //         ?.parentSpeciesIds ?? r.speciesId,
+  //   )
+  //   .flat();
+  const pokemonStorageNotInRankings = new Map<string, number>();
+  pokemonStorage.forEach((p) => {
+    //if (rankingIds.includes(p.speciesId)) return;
+    const count = pokemonStorageNotInRankings.get(p.speciesId) ?? 0;
+    pokemonStorageNotInRankings.set(p.speciesId, count + 1);
+  });
+  // sort by count descending
+  const sortedPokemonStorageNotInRankings = new Map(
+    Array.from(pokemonStorageNotInRankings.entries()).sort(
+      (a, b) => b[1] - a[1],
+    ),
+  );
+  console.log(
+    'pokemonStorageNotInRankings:',
+    sortedPokemonStorageNotInRankings,
+  );
 
   useEffect(() => {
     let cancel = (_?: any) => {};

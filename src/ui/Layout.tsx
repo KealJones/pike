@@ -10,11 +10,20 @@ import { UploadNavItem } from './UploadNavItem';
 
 export function Layout() {
   const renderPageItem = useCallback((item: NavigationPageItem) => {
-    if (item.title === 'Upload') {
-      return <UploadNavItem item={item} />;
+    switch (item.title) {
+      case 'Upload':
+        return <UploadNavItem item={item} />;
+      case 'Feedback':
+        return (
+          <DashboardSidebarPageItem
+            item={item}
+            href="https://docs.google.com/forms/d/e/1FAIpQLScbtAAitxpL5hDJRzGR-QTDv4ZqlLMDMjI-LZJqhjOGnL4xWg/viewform?usp=dialog"
+            {...{ target: '_blank' }}
+          />
+        );
+      default:
+        return <DashboardSidebarPageItem item={item} />;
     }
-
-    return <DashboardSidebarPageItem item={item} />;
   }, []);
 
   return (

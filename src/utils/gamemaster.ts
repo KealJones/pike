@@ -9,6 +9,9 @@ export function getPokemonGamemasterData(
   gameMaster: GameMasterFile,
 ): GamemasterPokemonEntry {
   let potentialSpeciesId = speciesId;
+  if (speciesId === 'clodsiresb') {
+    potentialSpeciesId = 'clodsire';
+  }
   if (potentialSpeciesId.includes('morpeko')) {
     potentialSpeciesId = 'morpeko_full_belly';
   }

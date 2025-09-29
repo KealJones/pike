@@ -47,19 +47,23 @@ export const genieTemplate = {
       standardizeMove(e['Charge Move 2']),
     ],
   }),
-  stats: (e: PokeGenieEntry) => ({
-    ivs: {
-      attack: parseInt(e['Atk IV'] ?? '0'),
-      defense: parseInt(e['Def IV'] ?? '0'),
-      stamina: parseInt(e['Sta IV'] ?? '0'),
-    },
-    battle: {
-      attack: 0,
-      defense: 0,
-      stamina: 0,
-    },
-    cp: parseInt(e.CP ?? '0'),
-  }),
+  stats: (e: PokeGenieEntry) => {
+    console.log(e['Atk IV']);
+
+    return {
+      ivs: {
+        attack: parseInt(e['Atk IV'] ?? '0'),
+        defense: parseInt(e['Def IV'] ?? '0'),
+        stamina: parseInt(e['Sta IV'] ?? '0'),
+      },
+      battle: {
+        attack: 0,
+        defense: 0,
+        stamina: 0,
+      },
+      cp: parseInt(e.CP ?? '0'),
+    };
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -162,7 +166,7 @@ export function createSpeciesId(
     alignment = 'shadow';
   }
 
-  if (name == 'morpeko' && form != 'full_belly') {
+  if (name.toLowerCase() == 'morpeko' && form != 'full_belly') {
     form = 'full_belly';
   }
 

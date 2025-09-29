@@ -89,7 +89,7 @@ export const useLeague = create<LeagueState>()(
   //persist(
   (set) => {
     const leagueRankListPromise = fetchJson(
-      `https://esm.sh/gh/pvpoke/pvpoke/src/data/rankings/gobattleleague/overall/rankings-1500.json`,
+      `https://esm.sh/gh/pvpoke/pvpoke/src/data/rankings/all/overall/rankings-1500.json`,
     ).then((result: RankingTarget[]) => {
       return result.map((item, index) => ({
         ...item,
@@ -101,7 +101,7 @@ export const useLeague = create<LeagueState>()(
       league: 1500,
       setLeague: (newLeague: LeagueCpCap) => {
         const leagueRankListPromise = fetchJson(
-          `https://esm.sh/gh/pvpoke/pvpoke/src/data/rankings/gobattleleague/overall/rankings-${newLeague}.json`,
+          `https://esm.sh/gh/pvpoke/pvpoke/src/data/rankings/all/overall/rankings-${newLeague}.json`,
         ).then((result: RankingTarget[]) => {
           return result.map((item, index) => ({
             ...item,

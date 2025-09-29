@@ -92,8 +92,12 @@ const LeagueToggleButton = ({ value }: { value: LeagueCpCap }) => {
           opacity: 0.9,
         }}
       />
-      <Typography zIndex={1} fontWeight={value === league ? 'bold' : 'normal'}>
-        {leagueCpCapToName[value]} League - {value}
+      <Typography
+        variant="body1"
+        zIndex={1}
+        fontWeight={value === league ? 'bold' : 'normal'}
+      >
+        {leagueCpCapToName[value]} - {value}
       </Typography>
     </ToggleButton>
   );

@@ -1,10 +1,10 @@
 import { use } from 'react';
-import { useLeague } from '../AppStore';
+import { useFormat } from '../AppStore';
 import type { RankingTarget } from '../types/pokemon.types';
 
 export function useRankingList(): RankingTarget[] {
   // Custom hook logic for managing the ranking list
-  const leagueRankListPromise = useLeague(
+  const leagueRankListPromise = useFormat(
     (state) => state.leagueRankListPromise,
   );
   return use(leagueRankListPromise);

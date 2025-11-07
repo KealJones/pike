@@ -5,7 +5,7 @@ import {
 } from '@toolpad/core';
 import { useCallback } from 'react';
 import { Outlet } from 'react-router';
-import { LeaguePicker } from './LeaguePicker';
+import { LeaguePicker } from './FormatPicker';
 import { UploadNavItem } from './UploadNavItem';
 
 export function Layout() {
@@ -30,8 +30,10 @@ export function Layout() {
     <DashboardLayout
       defaultSidebarCollapsed
       renderPageItem={renderPageItem}
-      // @ts-expect-error this is typed incorrectly, all props should be entirely optional
-      slotProps={{ header: { hideMenuButton: true } }}
+      slotProps={{
+        // @ts-expect-error this is typed incorrectly, all props should be entirely optional
+        header: { hideMenuButton: true },
+      }}
       slots={{
         toolbarActions: LeaguePicker,
       }}

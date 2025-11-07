@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { ivChartsCreated, useLeague, usePokemonStorage } from '../AppStore';
+import { ivChartsCreated, useFormat, usePokemonStorage } from '../AppStore';
 import { useGameMaster } from '../hooks/useGameMaster';
 import { useRankingList } from '../hooks/useRankingList';
 import type { Pokemon } from '../types/pokemon.types';
@@ -9,7 +9,7 @@ import { getCandidates } from '../utils/rank';
 import { PokemonDataTable } from './PokemonDataTable';
 
 export function PotentialPokemon() {
-  const league = useLeague((state) => state.league);
+  const league = useFormat((state) => state.cp);
   const gameMaster = useGameMaster();
   const rankingListToUse = useRankingList();
   const pokemonStorage = usePokemonStorage((state) => state.pokemonStorage);

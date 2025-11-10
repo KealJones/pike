@@ -6,6 +6,7 @@ import App from './App.tsx';
 import './AppStore.ts';
 import './index.css';
 import AnalysisPage from './pages/index.tsx';
+import PvpTradeCalculatorPage from './pages/PvpTradeCalculator.tsx';
 import { Layout } from './ui/Layout.tsx';
 import theme from './ui/theme.ts';
 
@@ -17,10 +18,8 @@ const router = createBrowserRouter(
         {
           Component: Layout,
           children: [
-            {
-              path: '/',
-              Component: AnalysisPage,
-            },
+            { path: '/', Component: AnalysisPage },
+            { path: '/percentile', Component: PvpTradeCalculatorPage },
           ],
         },
       ],

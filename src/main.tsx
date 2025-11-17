@@ -5,6 +5,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router';
 import App from './App.tsx';
 import './AppStore.ts';
 import './index.css';
+import BottleCapCalculatorPage from './pages/BottleCapCalculatorPage.tsx';
 import AnalysisPage from './pages/index.tsx';
 import PvpTradeCalculatorPage from './pages/PvpTradeCalculator.tsx';
 import { Layout } from './ui/Layout.tsx';
@@ -19,7 +20,14 @@ const router = createBrowserRouter(
           Component: Layout,
           children: [
             { path: '/', Component: AnalysisPage },
-            { path: '/percentile', Component: PvpTradeCalculatorPage },
+            {
+              path: '/pvp-trade-calculator',
+              Component: PvpTradeCalculatorPage,
+            },
+            {
+              path: '/bottle-cap-calculator',
+              Component: BottleCapCalculatorPage,
+            },
           ],
         },
       ],

@@ -1,6 +1,6 @@
 import './App.css';
 
-import { QueryStats, TableChart, Upload } from '@mui/icons-material';
+import { QueryStats, Science, TableChart, Upload } from '@mui/icons-material';
 import type { Navigation } from '@toolpad/core/AppProvider';
 import { ReactRouterAppProvider } from '@toolpad/core/react-router';
 import { DialogsProvider } from '@toolpad/core/useDialogs';
@@ -23,6 +23,11 @@ const NAVIGATION: Navigation = [
     title: 'PvP Trade Calculator',
     segment: 'pvp-trade-calculator',
     icon: <QueryStats />,
+  },
+  {
+    title: 'Bottle Cap Calculator',
+    segment: 'bottle-cap-calculator',
+    icon: <Science />,
   },
   // Future extras:
   // { title: 'Feedback', icon: <Feedback /> },

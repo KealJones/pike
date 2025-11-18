@@ -48,11 +48,12 @@ export const genieTemplate = {
     ],
   }),
   stats: (e: PokeGenieEntry) => {
+    console.log(e);
     return {
       ivs: {
-        attack: parseInt(e['Atk IV'] ?? '0'),
-        defense: parseInt(e['Def IV'] ?? '0'),
-        stamina: parseInt(e['Sta IV'] ?? '0'),
+        attack: parseInt(e['Atk IV'] || '0'),
+        defense: parseInt(e['Def IV'] || '0'),
+        stamina: parseInt(e['Sta IV'] || '0'),
       },
       battle: {
         attack: 0,

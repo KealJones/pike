@@ -93,7 +93,7 @@ export function PokemonDataTable(props: {
                   <Typography>Score: {pvpokeRankScore}</Typography>
                 </Box>
                 <Avatar
-                  src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${
+                  src={`https://esm.sh/gh/PokeAPI/sprites/sprites/pokemon/other/home/${
                     '' //row.original.shiny ? 'shiny/' : ''
                   }${row.original.rankTarget?.dexId}.png`}
                 />

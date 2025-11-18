@@ -89,7 +89,7 @@ export function PokemonEntry(props: { pokemon: Pokemon }) {
         <Box
           component={'img'}
           sx={{ position: 'relative', width: '10rem' }}
-          src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${
+          src={`https://esm.sh/gh/PokeAPI/sprites/sprites/pokemon/other/home/${
             singlePokemon.shiny ? 'shiny/' : ''
           }${singlePokemon.dex}.png`}
           alt=""

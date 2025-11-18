@@ -6,7 +6,7 @@ import type {
 
 // These templates match the final output shape, and all transforms are handled inside
 export const proTemplate = {
-  name: (e: ProEntry) => e.mon_name ?? '',
+  name: (e: ProEntry) => standardizeName(e.mon_name),
   shiny: (e: ProEntry) => e.mon_isshiny === 'YES',
   lucky: (e: ProEntry) => e.mon_islucky === 'YES',
   alignment: (e: ProEntry) => standardizeAlignment(e.mon_alignment),
@@ -35,7 +35,7 @@ export const proTemplate = {
 };
 
 export const genieTemplate = {
-  name: (e: PokeGenieEntry) => e.Name ?? '',
+  name: (e: PokeGenieEntry) => standardizeName(e.Name),
   shiny: (_: PokeGenieEntry) => false,
   lucky: (e: PokeGenieEntry) => e.Lucky === '1',
   alignment: (e: PokeGenieEntry) => standardizeAlignment(e['Shadow/Purified']),
@@ -48,8 +48,6 @@ export const genieTemplate = {
     ],
   }),
   stats: (e: PokeGenieEntry) => {
-    console.log(e['Atk IV']);
-
     return {
       ivs: {
         attack: parseInt(e['Atk IV'] ?? '0'),
@@ -80,6 +78,12 @@ const formRewriteMap: { [key: string]: string } = {
   hisui: 'hisuian',
   paldea: 'paldean',
 };
+
+export function standardizeName(name?: string): string {
+  // The normalize and removal of diacritics ensures consistent naming for species with special characters. such as "Flabébé" -> "Flabebe"
+  // See: https://stackoverflow.com/questions/990904/remove-accents-diacritics-in-a-string-in-javascript/37511463#37511463
+  return name?.normalize('NFKD')?.replace(/\p{Diacritic}/gu, '') ?? '';
+}
 
 export function standardizeForm(
   name: string,

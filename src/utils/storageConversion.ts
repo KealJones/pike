@@ -4,16 +4,43 @@ import type {
   ProEntry,
 } from '../types/pokemon.types';
 
+// function proStandardizeForm(e: ProEntry): undefined | string {
+//   const arr = e.mon_form
+//     ?.split('_');
+//   let potentialSpeciesId = e.mon_form?.toLowerCase().trim() ?? '';
+//   if ()
+//   // loop through arr and remove the first part and concatenate it every time until we hit a part that matches a name in the gamemaster
+//   for (let i = 1; i <= arr!.length; i++) {
+
+//   arr?.shift();
+//   console.log(arr);
+//   return standardizeForm(e.mon_name ?? '', arr?.join('_') ?? '');
+// }
+
+// function proStandardizeName(e: ProEntry): string {
+//   let form = proStandardizeForm(e);
+//   form = form?.replace(/_/g, ' ') ?? '';
+//   let name =
+//     e.mon_name
+//       ?.toLowerCase()
+//       ?.trim()
+//       ?.replace(form + ' ', '')
+//       ?.trim() ?? '';
+//   console.log('proStandardizeName name:', name, form);
+//   return standardizeName(name);
+// }
+
 // These templates match the final output shape, and all transforms are handled inside
 export const proTemplate = {
-  name: (e: ProEntry) => standardizeName(e.mon_name),
+  name: (e: ProEntry) => standardizeName(e.mon_name, e.mon_form),
   shiny: (e: ProEntry) => e.mon_isshiny === 'YES',
   lucky: (e: ProEntry) => e.mon_islucky === 'YES',
   alignment: (e: ProEntry) => standardizeAlignment(e.mon_alignment),
   form: (e: ProEntry) => {
-    const arr = e.mon_form?.split('_');
-    arr?.shift();
-    return standardizeForm(e.mon_name ?? '', arr?.join('_') ?? '');
+    return standardizeForm(
+      standardizeName(e.mon_name, e.mon_form),
+      e.mon_form ?? '',
+    );
   },
   moves: (e: ProEntry) => ({
     fast: standardizeMove(e.mon_move_1),
@@ -48,7 +75,6 @@ export const genieTemplate = {
     ],
   }),
   stats: (e: PokeGenieEntry) => {
-    console.log(e);
     return {
       ivs: {
         attack: parseInt(e['Atk IV'] || '0'),
@@ -80,10 +106,49 @@ const formRewriteMap: { [key: string]: string } = {
   paldea: 'paldean',
 };
 
-export function standardizeName(name?: string): string {
+function longestPrefixFoundIn(stringA: string, stringB: string): string | null {
+  const a = stringA.toLowerCase();
+  const b = stringB.toLowerCase();
+
+  let lastGood: string | null = null;
+  let current = '';
+
+  for (let i = 0; i < a.length; i++) {
+    current += a[i];
+
+    if (b.includes(current)) {
+      lastGood = current;
+    } else {
+      break;
+    }
+  }
+
+  return lastGood;
+}
+
+export function standardizeName(name?: string, form?: string): string {
+  let nidoranGender = '';
+  let nameLower = name?.toLowerCase()?.replace(/\./g, '') ?? '';
+  if (nameLower.includes('nidoran')) {
+    if (nameLower.includes('female ')) {
+      nidoranGender = '_female';
+    } else {
+      nidoranGender = '_male';
+    }
+  }
+
+  if (form) {
+    name = longestPrefixFoundIn(
+      form.toLowerCase(),
+      nameLower.replace(/-|\s/g, '_') ?? '',
+    )?.trim();
+  }
   // The normalize and removal of diacritics ensures consistent naming for species with special characters. such as "Flabébé" -> "Flabebe"
   // See: https://stackoverflow.com/questions/990904/remove-accents-diacritics-in-a-string-in-javascript/37511463#37511463
-  return name?.normalize('NFKD')?.replace(/\p{Diacritic}/gu, '') ?? '';
+  return (
+    (name?.normalize('NFKD')?.replace(/\p{Diacritic}/gu, '') ?? '') +
+    nidoranGender
+  );
 }
 
 export function standardizeForm(
@@ -158,12 +223,24 @@ export function createSpeciesId(
   form: string | undefined,
   gameMaster: { pokemon: GameMasterFile['pokemon']; [key: string]: unknown },
 ): string {
+  name = name.toLowerCase().trim();
+  alignment = alignment?.toLowerCase().trim();
+  form = form?.toLowerCase().trim();
+
   // create a list of all speciesIds in the gamemaster
   const gameMasterSpeciesIds = Array.isArray(gameMaster.pokemon)
     ? gameMaster.pokemon.map((p) => p.speciesId)
     : Object.keys(gameMaster.pokemon);
+
   if (gameMasterSpeciesIds.includes([name, form, alignment].join('_'))) {
     return [name, form, alignment].join('_');
+  }
+
+  name = name.replace(/(alola|galar|hisui|paldea)\s/, '');
+
+  if (name.includes(' castform')) {
+    form = form?.replace('castform_', '');
+    name = 'castform';
   }
 
   if (name == 'giratina_altered_shadow_b') {
@@ -171,7 +248,7 @@ export function createSpeciesId(
     alignment = 'shadow';
   }
 
-  if (name.toLowerCase() == 'morpeko' && form != 'full_belly') {
+  if (name == 'morpeko' && form != 'full_belly') {
     form = 'full_belly';
   }
 
@@ -185,18 +262,16 @@ export function createSpeciesId(
     alignment,
   ]
     .filter(Boolean)
-    .join('_')
-    .toLowerCase();
-
+    .join('_');
   // Check if the possibleId is in the gamemaster
   if (gameMasterSpeciesIds.includes(possibleId)) {
     return possibleId;
-  } else if (gameMasterSpeciesIds.includes(name.toLowerCase())) {
+  } else if (gameMasterSpeciesIds.includes(name)) {
     // If the `possibleId` didnt match but the name matches a speciesId in the gamemaster, we use that as the speciesId instead (close enough?).
-    return name.toLowerCase();
+    return name;
   }
   // If neither match, we throw an error. Thats too much of a mismatch.
   throw new Error(
-    `No gamemaster data found for speciesId: ${possibleId} or ${name.toLowerCase()}`,
+    `No gamemaster data found for speciesId: ${possibleId} or ${name}. Name: ${name}, Form: ${form}, Alignment: ${alignment}`,
   );
 }

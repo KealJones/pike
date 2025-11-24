@@ -23,22 +23,22 @@ export function PotentialPokemon() {
   //         ?.parentSpeciesIds ?? r.speciesId,
   //   )
   //   .flat();
-  const pokemonStorageNotInRankings = new Map<string, number>();
-  pokemonStorage.forEach((p) => {
-    //if (rankingIds.includes(p.speciesId)) return;
-    const count = pokemonStorageNotInRankings.get(p.speciesId) ?? 0;
-    pokemonStorageNotInRankings.set(p.speciesId, count + 1);
-  });
-  // sort by count descending
-  const sortedPokemonStorageNotInRankings = new Map(
-    Array.from(pokemonStorageNotInRankings.entries()).sort(
-      (a, b) => b[1] - a[1],
-    ),
-  );
-  console.log(
-    'pokemonStorageNotInRankings:',
-    sortedPokemonStorageNotInRankings,
-  );
+  // const pokemonStorageNotInRankings = new Map<string, number>();
+  // pokemonStorage.forEach((p) => {
+  //   //if (rankingIds.includes(p.speciesId)) return;
+  //   const count = pokemonStorageNotInRankings.get(p.speciesId) ?? 0;
+  //   pokemonStorageNotInRankings.set(p.speciesId, count + 1);
+  // });
+  // // sort by count descending
+  // const sortedPokemonStorageNotInRankings = new Map(
+  //   Array.from(pokemonStorageNotInRankings.entries()).sort(
+  //     (a, b) => b[1] - a[1],
+  //   ),
+  // );
+  // console.log(
+  //   'pokemonStorageNotInRankings:',
+  //   sortedPokemonStorageNotInRankings,
+  // );
 
   useEffect(() => {
     let cancel = (_?: any) => {};
@@ -53,17 +53,17 @@ export function PotentialPokemon() {
           setIsLoading(true);
         }
         await ivChartsCreated;
-        const start = performance.now();
+        //const start = performance.now();
         const result = await getCandidates(
           pokemonStorage,
           league,
           gameMaster,
           rankingListToUse,
         );
-        console.log(
-          `getCandidates results took ${performance.now() - start}ms:`,
-          result,
-        );
+        // console.log(
+        //   `getCandidates results took ${performance.now() - start}ms:`,
+        //   result,
+        // );
         if (isMounted) {
           setCandidates(result ?? []);
           setIsLoading(false);
@@ -101,7 +101,7 @@ export function PotentialPokemon() {
         }
       }
     }
-    console.log('shadowPotentials results:', results);
+    //console.log('shadowPotentials results:', results);
     return results;
   }, [rankingListToUse]);
   //console.log('shadowPotentials:', shadowPotentials);

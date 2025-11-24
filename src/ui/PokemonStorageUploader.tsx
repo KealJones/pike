@@ -35,7 +35,12 @@ export const PokemonStorageUploader: React.FC<{
         let jsonData;
         // Try to parse as JSON
         try {
-          jsonData = JSON.parse(content);
+          const parsed = JSON.parse(content);
+          if (parsed.fileData) {
+            jsonData = Object.values(parsed.fileData);
+          } else {
+            jsonData = parsed;
+          }
         } catch {
           // If not JSON, try CSV
           try {

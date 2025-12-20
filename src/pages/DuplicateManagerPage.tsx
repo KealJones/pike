@@ -142,9 +142,22 @@ export default function DuplicateManagerPage() {
     copyToClipboard(searchString, 'all deletables');
   };
 
+  const exportAllKeepers = () => {
+    if (!analysis) return;
+
+    const allKeepers = analysis.groups.flatMap((g) => g.keep);
+    const searchString = generateSearchString(allKeepers);
+    copyToClipboard(searchString, 'all keepers');
+  };
+
   const exportGroupDeletables = (group: DuplicateGroup) => {
     const searchString = generateSearchString(group.delete);
     copyToClipboard(searchString, `${group.speciesName} deletables`);
+  };
+
+  const exportGroupKeepers = (group: DuplicateGroup) => {
+    const searchString = generateSearchString(group.keep);
+    copyToClipboard(searchString, `${group.speciesName} keepers`);
   };
 
   if (isLoading) {
@@ -257,6 +270,15 @@ export default function DuplicateManagerPage() {
           >
             Export All Deletables
           </Button>
+
+          <Button
+            variant="outlined"
+            startIcon={<ContentCopy />}
+            onClick={exportAllKeepers}
+            disabled={filteredGroups.length === 0}
+          >
+            Export All Keepers
+          </Button>
         </Stack>
       </Paper>
 
@@ -298,9 +320,7 @@ export default function DuplicateManagerPage() {
                 sx={{ width: '100%', pr: 2 }}
               >
                 <Avatar
-                  src={`https://esm.sh/gh/PokeAPI/sprites/sprites/pokemon/other/home/${
-                    group.speciesId.includes('shadow') ? 'shiny/' : ''
-                  }${gmData?.dex ?? 0}.png`}
+                  src={`https://esm.sh/gh/PokeAPI/sprites/sprites/pokemon/other/home/${gmData?.dex ?? 0}.png`}
                   sx={{ width: 48, height: 48 }}
                 />
 
@@ -327,19 +347,6 @@ export default function DuplicateManagerPage() {
                   color="error"
                   size="small"
                 />
-
-                <Tooltip title="Export deletables for this species">
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      exportGroupDeletables(group);
-                    }}
-                    disabled={group.delete.length === 0}
-                  >
-                    <ContentCopy fontSize="small" />
-                  </IconButton>
-                </Tooltip>
               </Stack>
             </AccordionSummary>
 
@@ -347,13 +354,27 @@ export default function DuplicateManagerPage() {
               <Stack spacing={2}>
                 {group.keep.length > 0 && (
                   <Box>
-                    <Typography
-                      variant="subtitle2"
-                      color="success.main"
-                      gutterBottom
-                    >
-                      ✅ KEEP ({group.keep.length})
-                    </Typography>
+                    <Stack direction="row" spacing={1}>
+                      <Typography
+                        variant="subtitle2"
+                        color="success.main"
+                        gutterBottom
+                      >
+                        ✅ KEEP ({group.keep.length})
+                      </Typography>
+                      <Tooltip title="Export keepers for this species">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            exportGroupKeepers(group);
+                          }}
+                          disabled={group.keep.length === 0}
+                        >
+                          <ContentCopy fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
                     <Stack spacing={1}>
                       {group.keep.map((pokemon, idx) => (
                         <PokemonRow key={idx} pokemon={pokemon} status="keep" />
@@ -364,13 +385,27 @@ export default function DuplicateManagerPage() {
 
                 {group.delete.length > 0 && (
                   <Box>
-                    <Typography
-                      variant="subtitle2"
-                      color="error.main"
-                      gutterBottom
-                    >
-                      🗑️ SAFE TO DELETE ({group.delete.length})
-                    </Typography>
+                    <Stack direction="row" spacing={1}>
+                      <Typography
+                        variant="subtitle2"
+                        color="error.main"
+                        gutterBottom
+                      >
+                        🗑️ SAFE TO DELETE ({group.delete.length})
+                      </Typography>
+                      <Tooltip title="Export deletables for this species">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            exportGroupDeletables(group);
+                          }}
+                          disabled={group.delete.length === 0}
+                        >
+                          <ContentCopy fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
                     <Stack spacing={1}>
                       {group.delete.map((pokemon, idx) => (
                         <PokemonRow

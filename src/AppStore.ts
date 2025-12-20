@@ -9,6 +9,7 @@ import type {
 import type { BuildIvChartsResponse } from './types/workers.types';
 import { fetchJson } from './utils/fetchJson';
 import { getPokemonGamemasterData } from './utils/gamemaster';
+import { indexedDBStorage } from './utils/indexedDBStorage';
 import type { LeagueCpCap } from './utils/leagues';
 
 export let ivChartsCreated: Promise<BuildIvChartsResponse['response']>;
@@ -219,6 +220,8 @@ export const usePokemonStorage = create<PokemonStorageState>()(
     }),
     {
       name: 'pokemon-storage',
+      storage: indexedDBStorage,
+      partialize: (state) => ({ pokemonStorage: state.pokemonStorage }),
     },
   ),
 );

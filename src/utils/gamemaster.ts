@@ -18,6 +18,9 @@ export function getPokemonGamemasterData(
   if (potentialSpeciesId == 'clodsiresb') {
     potentialSpeciesId = 'clodsire';
   }
+
+  potentialSpeciesId = potentialSpeciesId.replace('lycranroc', 'lycanroc');
+
   let entry = Array.isArray(gameMaster.pokemon)
     ? gameMaster.pokemon.find((p) => p.speciesId === potentialSpeciesId)
     : gameMaster.pokemon[potentialSpeciesId];

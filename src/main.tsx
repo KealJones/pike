@@ -6,8 +6,10 @@ import App from './App.tsx';
 import './AppStore.ts';
 import './index.css';
 import BottleCapCalculatorPage from './pages/BottleCapCalculatorPage.tsx';
+import DuplicateManagerPage from './pages/DuplicateManagerPage.tsx';
 import AnalysisPage from './pages/index.tsx';
 import PvpTradeCalculatorPage from './pages/PvpTradeCalculator.tsx';
+import SearchStringBuilderPage from './pages/SearchStringBuilderPage.tsx';
 import { Layout } from './ui/Layout.tsx';
 import theme from './ui/theme.ts';
 
@@ -20,12 +22,20 @@ const router = createHashRouter([
         children: [
           { path: '/', Component: AnalysisPage },
           {
+            path: '/duplicate-manager',
+            Component: DuplicateManagerPage,
+          },
+          {
             path: '/pvp-trade-calculator',
             Component: PvpTradeCalculatorPage,
           },
           {
             path: '/bottle-cap-calculator',
             Component: BottleCapCalculatorPage,
+          },
+          {
+            path: '/search-string-builder',
+            Component: SearchStringBuilderPage,
           },
         ],
       },

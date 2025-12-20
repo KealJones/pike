@@ -1,6 +1,13 @@
 import './App.css';
 
-import { QueryStats, Science, TableChart, Upload } from '@mui/icons-material';
+import {
+  ContentCopy,
+  QueryStats,
+  Science,
+  Search,
+  TableChart,
+  Upload,
+} from '@mui/icons-material';
 import type { Navigation } from '@toolpad/core/AppProvider';
 import { ReactRouterAppProvider } from '@toolpad/core/react-router';
 import { DialogsProvider } from '@toolpad/core/useDialogs';
@@ -20,6 +27,11 @@ const NAVIGATION: Navigation = [
     icon: <TableChart />,
   },
   {
+    title: 'Duplicate Manager',
+    segment: 'duplicate-manager',
+    icon: <ContentCopy />,
+  },
+  {
     title: 'PvP Trade Calculator',
     segment: 'pvp-trade-calculator',
     icon: <QueryStats />,
@@ -28,6 +40,11 @@ const NAVIGATION: Navigation = [
     title: 'Bottle Cap Calculator',
     segment: 'bottle-cap-calculator',
     icon: <Science />,
+  },
+  {
+    title: 'Search String Builder',
+    segment: 'search-string-builder',
+    icon: <Search />,
   },
   // Future extras:
   // { title: 'Feedback', icon: <Feedback /> },

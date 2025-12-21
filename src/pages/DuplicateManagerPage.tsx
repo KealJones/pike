@@ -450,8 +450,8 @@ export default function DuplicateManagerPage() {
                         color="error.main"
                         gutterBottom
                       >
-                        {expandedDeletes.has(key) ? '▼' : '▶'} 🗑️ SAFE TO DELETE
-                        ({totalDelete})
+                        {expandedDeletes.has(key) ? '▼' : '▶'} 🗑️ SAFE TO
+                        DELETE ({totalDelete})
                       </Typography>
                       <Tooltip title="Export deletables for this species">
                         <IconButton

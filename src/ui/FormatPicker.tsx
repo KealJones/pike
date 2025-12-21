@@ -13,46 +13,51 @@ export const LeaguePicker = () => {
   const setFormat = useFormat((state) => state.setFormat);
 
   return (
-    <Stack direction="row" alignItems="center">
+    <Stack alignItems={'end'}>
+      <Stack direction="row" alignItems="center">
+        <TextField
+          size="small"
+          select
+          onChange={(event) => {
+            setFormat(event.target.value, rankingScenario);
+          }}
+          value={formatTitle}
+          aria-label="PvP Format Selection"
+        >
+          {formatList
+            .filter((option) => !option.hideRankings)
+            .map((option) => (
+              <MenuItem key={option.title} value={option.title}>
+                {option.title}
+              </MenuItem>
+            ))}
+        </TextField>
+        <TextField
+          select
+          size="small"
+          onChange={(event) => {
+            setFormat(formatTitle, event.target.value as FormatRankingScenario);
+          }}
+          value={rankingScenario}
+          aria-label="PvP Format Selection"
+        >
+          {formatRankingScenarios.map((option) => (
+            <MenuItem key={option} value={option}>
+              {option.charAt(0).toUpperCase() + option.slice(1)}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Stack>
       <Typography
         component="a"
         href="https://pvpoke.com/rankings/"
         variant="caption"
         color="text.secondary"
-        mr={2}
+        mt={0.25}
+        sx={{ fontSize: '10px' }}
       >
         Ranking Data by PvPoke
       </Typography>
-      <TextField
-        select
-        onChange={(event) => {
-          setFormat(event.target.value, rankingScenario);
-        }}
-        value={formatTitle}
-        aria-label="PvP Format Selection"
-      >
-        {formatList
-          .filter((option) => !option.hideRankings)
-          .map((option) => (
-            <MenuItem key={option.title} value={option.title}>
-              {option.title}
-            </MenuItem>
-          ))}
-      </TextField>
-      <TextField
-        select
-        onChange={(event) => {
-          setFormat(formatTitle, event.target.value as FormatRankingScenario);
-        }}
-        value={rankingScenario}
-        aria-label="PvP Format Selection"
-      >
-        {formatRankingScenarios.map((option) => (
-          <MenuItem key={option} value={option}>
-            {option.charAt(0).toUpperCase() + option.slice(1)}
-          </MenuItem>
-        ))}
-      </TextField>
     </Stack>
   );
 };

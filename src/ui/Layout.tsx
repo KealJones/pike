@@ -30,10 +30,11 @@ export function Layout() {
     <DashboardLayout
       defaultSidebarCollapsed
       renderPageItem={renderPageItem}
-      slotProps={{
-        // @ts-expect-error this is typed incorrectly, all props should be entirely optional
-        header: { hideMenuButton: true },
-      }}
+      slotProps={
+        {
+          //header: { hideMenuButton: true },
+        }
+      }
       slots={{
         toolbarActions: LeaguePicker,
       }}

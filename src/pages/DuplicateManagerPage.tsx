@@ -53,6 +53,9 @@ export default function DuplicateManagerPage() {
     'all' | 'shadow' | 'normal'
   >('all');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [expandedDeletes, setExpandedDeletes] = useState<Set<string>>(
+    new Set(),
+  );
   const [copiedMessage, setCopiedMessage] = useState('');
 
   useEffect(() => {
@@ -131,6 +134,18 @@ export default function DuplicateManagerPage() {
 
   const toggleGroup = (key: string) => {
     setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  const toggleDeleteSection = (key: string) => {
+    setExpandedDeletes((prev) => {
       const next = new Set(prev);
       if (next.has(key)) {
         next.delete(key);
@@ -420,13 +435,23 @@ export default function DuplicateManagerPage() {
 
                 {totalDelete > 0 && (
                   <Box>
-                    <Stack direction="row" spacing={1}>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      onClick={() => toggleDeleteSection(key)}
+                      sx={{
+                        cursor: 'pointer',
+                        '&:hover': { opacity: 0.8 },
+                        userSelect: 'none',
+                      }}
+                    >
                       <Typography
                         variant="subtitle2"
                         color="error.main"
                         gutterBottom
                       >
-                        🗑️ SAFE TO DELETE ({totalDelete})
+                        {expandedDeletes.has(key) ? '▼' : '▶'} 🗑️ SAFE TO DELETE
+                        ({totalDelete})
                       </Typography>
                       <Tooltip title="Export deletables for this species">
                         <IconButton
@@ -441,22 +466,24 @@ export default function DuplicateManagerPage() {
                         </IconButton>
                       </Tooltip>
                     </Stack>
-                    <Stack spacing={1}>
-                      {group.normalDelete.map((pokemon, idx) => (
-                        <PokemonRow
-                          key={idx}
-                          pokemon={pokemon}
-                          status="delete"
-                        />
-                      ))}
-                      {group.shadowDelete.map((pokemon, idx) => (
-                        <PokemonRow
-                          key={`shadow-${idx}`}
-                          pokemon={pokemon}
-                          status="delete"
-                        />
-                      ))}
-                    </Stack>
+                    {expandedDeletes.has(key) && (
+                      <Stack spacing={1}>
+                        {group.normalDelete.map((pokemon, idx) => (
+                          <PokemonRow
+                            key={idx}
+                            pokemon={pokemon}
+                            status="delete"
+                          />
+                        ))}
+                        {group.shadowDelete.map((pokemon, idx) => (
+                          <PokemonRow
+                            key={`shadow-${idx}`}
+                            pokemon={pokemon}
+                            status="delete"
+                          />
+                        ))}
+                      </Stack>
+                    )}
                   </Box>
                 )}
               </Stack>

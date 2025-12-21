@@ -1,14 +1,19 @@
-import type { GameMasterFile, Pokemon } from '../types/pokemon.types';
+import type {
+  GameMasterFile,
+  Pokemon,
+  RankingTarget,
+} from '../types/pokemon.types';
 import { getPokemonGamemasterData } from './gamemaster';
 import { buildIvChart, type RankOccurence } from './rank-calculator';
 
 export interface DuplicateGroup {
   speciesId: string;
   speciesName: string;
-  alignment: 'shadow' | 'normal';
   totalCount: number;
-  keep: Pokemon[];
-  delete: Pokemon[];
+  normalKeep: Pokemon[];
+  normalDelete: Pokemon[];
+  shadowKeep: Pokemon[];
+  shadowDelete: Pokemon[];
 }
 
 export interface EvolutionRankInfo {
@@ -16,6 +21,10 @@ export interface EvolutionRankInfo {
   evolvedSpeciesName: string;
   percentile: number;
   rank: number;
+  rankingInfo?: {
+    rank: number;
+    rating: number;
+  };
 }
 
 export interface DuplicateAnalysis {
@@ -53,19 +62,51 @@ function calculateEvolutionRanks(
   gameMaster: GameMasterFile,
   cpMax: number,
   ivChartCache: Map<string, Record<string, RankOccurence>>,
+  rankingList?: RankingTarget[],
 ): EvolutionRankInfo[] {
-  const evolutions = getEvolutionChain(pokemon.speciesId, gameMaster);
+  // Normalize speciesId for evolution lookup (remove _shadow)
+  const normalizedSpeciesId = pokemon.speciesId.replace(/_shadow$/, '');
+  const evolutions = getEvolutionChain(normalizedSpeciesId, gameMaster);
   const results: EvolutionRankInfo[] = [];
+  const isShadow = pokemon.alignment === 'shadow';
+
+  // Get current species data (use normalized ID)
+  const currentGmData = getPokemonGamemasterData(
+    normalizedSpeciesId,
+    gameMaster,
+  );
+  if (!currentGmData) return [];
 
   for (const evolvedSpeciesId of evolutions) {
+    // If this is a shadow Pokemon, check shadow evolution stats
+    const targetSpeciesId = isShadow
+      ? `${evolvedSpeciesId}_shadow`
+      : evolvedSpeciesId;
     const evolvedGmData = getPokemonGamemasterData(
       evolvedSpeciesId,
       gameMaster,
     );
     if (!evolvedGmData) continue;
 
-    // Build IV chart for evolved form if not cached
-    let evolvedIvChart = ivChartCache.get(evolvedSpeciesId);
+    // Check if evolution would likely exceed CP cap
+    // Use ratio of base stat products as a rough multiplier
+    const currentStatProduct =
+      currentGmData.baseStats.atk *
+      currentGmData.baseStats.def *
+      Math.sqrt(currentGmData.baseStats.hp);
+    const evolvedStatProduct =
+      evolvedGmData.baseStats.atk *
+      evolvedGmData.baseStats.def *
+      Math.sqrt(evolvedGmData.baseStats.hp);
+    const cpMultiplier = Math.sqrt(evolvedStatProduct / currentStatProduct);
+
+    // If current CP exists and evolving would likely exceed cap, skip this evolution
+    if (pokemon.stats.cp && pokemon.stats.cp * cpMultiplier > cpMax) {
+      continue;
+    }
+
+    // Build IV chart for evolved form if not cached (use target ID with shadow if applicable)
+    let evolvedIvChart = ivChartCache.get(targetSpeciesId);
     if (!evolvedIvChart) {
       evolvedIvChart = buildIvChart({
         maxCP: cpMax,
@@ -79,7 +120,7 @@ function calculateEvolutionRanks(
           family: evolvedGmData.family?.id,
         },
       });
-      ivChartCache.set(evolvedSpeciesId, evolvedIvChart);
+      ivChartCache.set(targetSpeciesId, evolvedIvChart);
     }
 
     // Check rank for this Pokemon's IVs in the evolved form
@@ -91,11 +132,25 @@ function calculateEvolutionRanks(
       const percentile =
         ((ivChartLength - rankInfo.rank) / ivChartLength) * 100;
 
+      // Check if this evolution is in the ranking list
+      const normalizedEvoId = evolvedSpeciesId.replace(/_shadow$/, '');
+      const rankingInfo = rankingList?.find(
+        (entry) => entry.speciesId === normalizedEvoId,
+      );
+
       results.push({
-        evolvedSpeciesId,
-        evolvedSpeciesName: evolvedGmData.speciesName,
+        evolvedSpeciesId: targetSpeciesId,
+        evolvedSpeciesName: isShadow
+          ? `${evolvedGmData.speciesName} (Shadow)`
+          : evolvedGmData.speciesName,
         percentile,
         rank: rankInfo.rank,
+        rankingInfo: rankingInfo
+          ? {
+              rank: rankingInfo.position,
+              rating: rankingInfo.rating,
+            }
+          : undefined,
       });
     }
   }
@@ -116,6 +171,7 @@ function calculateEvolutionRanks(
  * @param gameMaster - Game master data
  * @param keepTopN - How many of each species/alignment to keep (default: 1)
  * @param builtThreshold - CP threshold to consider "built" (default: 50 CP below cap)
+ * @param rankingList - Optional ranking list for PvP viability checks
  */
 export async function identifyDuplicates(
   pokemonStorage: Pokemon[],
@@ -123,32 +179,41 @@ export async function identifyDuplicates(
   gameMaster: GameMasterFile,
   keepTopN: number = 1,
   builtThreshold: number = 50,
+  rankingList?: RankingTarget[],
 ): Promise<DuplicateAnalysis> {
   const ivChartCache = new Map<string, Record<string, RankOccurence>>();
 
-  // Group Pokemon by speciesId + alignment
-  const groups = new Map<string, Pokemon[]>();
+  // Group Pokemon by speciesId only (combine normal and shadow)
+  const speciesGroups = new Map<
+    string,
+    { normal: Pokemon[]; shadow: Pokemon[] }
+  >();
 
   for (const pokemon of pokemonStorage) {
-    const alignment = pokemon.alignment === 'shadow' ? 'shadow' : 'normal';
-    const key = `${pokemon.speciesId}|||||${alignment}`;
+    // Normalize speciesId by removing _shadow suffix for grouping
+    const normalizedSpeciesId = pokemon.speciesId.replace(/_shadow$/, '');
 
-    if (!groups.has(key)) {
-      groups.set(key, []);
+    if (!speciesGroups.has(normalizedSpeciesId)) {
+      speciesGroups.set(normalizedSpeciesId, { normal: [], shadow: [] });
     }
-    groups.get(key)!.push(pokemon);
+
+    const group = speciesGroups.get(normalizedSpeciesId)!;
+    if (pokemon.alignment === 'shadow') {
+      group.shadow.push(pokemon);
+    } else {
+      group.normal.push(pokemon);
+    }
   }
 
   const duplicateGroups: DuplicateGroup[] = [];
   let totalToKeep = 0;
   let totalToDelete = 0;
 
-  // Process each group
-  for (const [key, pokemonList] of groups.entries()) {
-    const [speciesId, alignmentStr] = key.split('|||||');
-    const alignment = alignmentStr as 'shadow' | 'normal';
+  // Process each species group
+  for (const [speciesId, { normal, shadow }] of speciesGroups.entries()) {
+    const totalCount = normal.length + shadow.length;
 
-    if (pokemonList.length === 0) continue;
+    if (totalCount === 0) continue;
 
     // Get game master data for this species
     const gmData = getPokemonGamemasterData(speciesId, gameMaster);
@@ -172,137 +237,196 @@ export async function identifyDuplicates(
       ivChartCache.set(speciesId, ivChart);
     }
 
-    // Calculate rank percentile for each Pokemon (for current form and evolutions)
-    const rankedPokemon = pokemonList.map((p) => {
-      const ivKey = `${p.stats.ivs.attack}/${p.stats.ivs.defense}/${p.stats.ivs.stamina}`;
-      const rankInfo = ivChart![ivKey];
-      const ivChartLength = Object.keys(ivChart ?? {}).length;
+    // Process normal and shadow separately
+    const processAlignment = (pokemonList: Pokemon[]) => {
+      if (pokemonList.length === 0) return { keep: [], delete: [] };
 
-      const percentile =
-        ((ivChartLength - rankInfo!.rank) / ivChartLength) * 100;
+      // Calculate rank percentile for each Pokemon (for current form and evolutions)
+      const rankedPokemon = pokemonList.map((p) => {
+        const ivKey = `${p.stats.ivs.attack}/${p.stats.ivs.defense}/${p.stats.ivs.stamina}`;
+        const rankInfo = ivChart![ivKey];
+        const ivChartLength = Object.keys(ivChart ?? {}).length;
 
-      const isBuilt = p.stats.cp ? p.stats.cp >= cpMax - builtThreshold : false;
+        const percentile =
+          ((ivChartLength - rankInfo!.rank) / ivChartLength) * 100;
 
-      // Check evolution potential
-      const evolutionRanks = calculateEvolutionRanks(
-        p,
-        gameMaster,
-        cpMax,
-        ivChartCache,
+        const isBuilt = p.stats.cp
+          ? p.stats.cp >= cpMax - builtThreshold
+          : false;
+
+        // Check evolution potential
+        const evolutionRanks = calculateEvolutionRanks(
+          p,
+          gameMaster,
+          cpMax,
+          ivChartCache,
+          rankingList,
+        );
+        const bestEvolutionRank =
+          evolutionRanks.length > 0
+            ? evolutionRanks.reduce((best, current) =>
+                current.percentile > best.percentile ? current : best,
+              )
+            : null;
+
+        // Check if current form is in ranking list
+        const normalizedSpeciesId = p.speciesId.replace(/_shadow$/, '');
+        const rankingInfo = rankingList?.find(
+          (entry) => entry.speciesId === normalizedSpeciesId,
+        );
+
+        return {
+          ...p,
+          calculatedRank: {
+            percentile,
+            isBuilt,
+            cp: p.stats.cp ?? 0,
+            evolutionRanks,
+            bestEvolutionRank,
+            rankingInfo: rankingInfo
+              ? {
+                  rank: rankingInfo.position,
+                  rating: rankingInfo.rating,
+                }
+              : undefined,
+          },
+        };
+      });
+
+      // Sort by priority for current form ranking
+      const sortedByCurrentForm = [...rankedPokemon].sort((a, b) => {
+        if (a.calculatedRank.percentile !== b.calculatedRank.percentile) {
+          return b.calculatedRank.percentile - a.calculatedRank.percentile;
+        }
+        return b.calculatedRank.cp - a.calculatedRank.cp;
+      });
+
+      // Keep Pokemon that are already built
+      const builtPokemon = rankedPokemon.filter(
+        (p) => p.calculatedRank.isBuilt,
       );
-      const bestEvolutionRank =
-        evolutionRanks.length > 0
-          ? evolutionRanks.reduce((best, current) =>
-              current.percentile > best.percentile ? current : best,
-            )
-          : null;
-
-      return {
-        ...p,
-        calculatedRank: {
-          percentile,
-          isBuilt,
-          cp: p.stats.cp ?? 0,
-          evolutionRanks,
-          bestEvolutionRank,
-        },
-      };
-    });
-
-    // Sort by priority for current form ranking
-    const sortedByCurrentForm = [...rankedPokemon].sort((a, b) => {
-      if (a.calculatedRank.percentile !== b.calculatedRank.percentile) {
-        return b.calculatedRank.percentile - a.calculatedRank.percentile;
-      }
-      return b.calculatedRank.cp - a.calculatedRank.cp;
-    });
-
-    // Sort by priority for evolution potential
-    const sortedByEvolution = [...rankedPokemon].sort((a, b) => {
-      const aEvoPercentile =
-        a.calculatedRank.bestEvolutionRank?.percentile ?? 0;
-      const bEvoPercentile =
-        b.calculatedRank.bestEvolutionRank?.percentile ?? 0;
-
-      if (aEvoPercentile !== bEvoPercentile) {
-        return bEvoPercentile - aEvoPercentile;
-      }
-      return b.calculatedRank.cp - a.calculatedRank.cp;
-    });
-
-    // Keep Pokemon that are already built
-    const builtPokemon = rankedPokemon.filter((p) => p.calculatedRank.isBuilt);
-    const unbuiltPokemon = rankedPokemon.filter(
-      (p) => !p.calculatedRank.isBuilt,
-    );
-
-    // Identify must-keep Pokemon
-    const mustKeep = new Set<Pokemon>();
-
-    // Add all built Pokemon
-    builtPokemon.forEach((p) => mustKeep.add(p));
-
-    // Add best for current form (if has evolutions)
-    const hasEvolutions = getEvolutionChain(speciesId, gameMaster).length > 0;
-    if (hasEvolutions && unbuiltPokemon.length > 0) {
-      const bestCurrentForm = sortedByCurrentForm.find(
+      const unbuiltPokemon = rankedPokemon.filter(
         (p) => !p.calculatedRank.isBuilt,
       );
-      if (bestCurrentForm) mustKeep.add(bestCurrentForm);
-    }
 
-    // Add best for evolution (if has evolutions)
-    if (hasEvolutions && unbuiltPokemon.length > 0) {
-      const bestForEvolution = sortedByEvolution.find(
-        (p) => !p.calculatedRank.isBuilt && p.calculatedRank.bestEvolutionRank,
-      );
-      if (bestForEvolution) mustKeep.add(bestForEvolution);
-    }
+      // Identify must-keep Pokemon
+      const mustKeep = new Set<Pokemon>();
 
-    // Sort all unbuilt by overall best potential
-    const sortedUnbuilt = unbuiltPokemon.sort((a, b) => {
-      const aMaxPercentile = Math.max(
-        a.calculatedRank.percentile,
-        a.calculatedRank.bestEvolutionRank?.percentile ?? 0,
-      );
-      const bMaxPercentile = Math.max(
-        b.calculatedRank.percentile,
-        b.calculatedRank.bestEvolutionRank?.percentile ?? 0,
-      );
+      // Add all built Pokemon
+      builtPokemon.forEach((p) => mustKeep.add(p));
 
-      if (aMaxPercentile !== bMaxPercentile) {
-        return bMaxPercentile - aMaxPercentile;
+      // Add best for current form (if has evolutions)
+      const evolutions = getEvolutionChain(speciesId, gameMaster);
+      const hasEvolutions = evolutions.length > 0;
+      if (hasEvolutions && unbuiltPokemon.length > 0) {
+        const bestCurrentForm = sortedByCurrentForm.find(
+          (p) => !p.calculatedRank.isBuilt,
+        );
+        if (bestCurrentForm) mustKeep.add(bestCurrentForm);
       }
-      return b.calculatedRank.cp - a.calculatedRank.cp;
-    });
 
-    // Fill remaining slots up to keepTopN
-    const toKeep: Pokemon[] = Array.from(mustKeep);
+      // Add best for EACH possible evolution in the chain
+      if (hasEvolutions && unbuiltPokemon.length > 0) {
+        for (const evolvedSpeciesId of evolutions) {
+          // Check both normal and shadow versions of this evolution
+          const normalEvoId = evolvedSpeciesId;
+          const shadowEvoId = `${evolvedSpeciesId}_shadow`;
 
-    for (const pokemon of sortedUnbuilt) {
-      if (toKeep.length >= keepTopN) break;
-      if (!mustKeep.has(pokemon)) {
-        toKeep.push(pokemon);
+          // Find Pokemon with the best rank for normal evolution
+          let bestForNormalEvo: Pokemon | null = null;
+          let bestNormalPercentile = -1;
+
+          // Find Pokemon with the best rank for shadow evolution
+          let bestForShadowEvo: Pokemon | null = null;
+          let bestShadowPercentile = -1;
+
+          for (const pokemon of unbuiltPokemon) {
+            if (pokemon.calculatedRank.evolutionRanks) {
+              // Check for normal evolution
+              const normalRank = pokemon.calculatedRank.evolutionRanks.find(
+                (evo) => evo.evolvedSpeciesId === normalEvoId,
+              );
+              if (normalRank && normalRank.percentile > bestNormalPercentile) {
+                bestNormalPercentile = normalRank.percentile;
+                bestForNormalEvo = pokemon;
+              }
+
+              // Check for shadow evolution
+              const shadowRank = pokemon.calculatedRank.evolutionRanks.find(
+                (evo) => evo.evolvedSpeciesId === shadowEvoId,
+              );
+              if (shadowRank && shadowRank.percentile > bestShadowPercentile) {
+                bestShadowPercentile = shadowRank.percentile;
+                bestForShadowEvo = pokemon;
+              }
+            }
+          }
+
+          if (bestForNormalEvo) {
+            mustKeep.add(bestForNormalEvo);
+          }
+          if (bestForShadowEvo) {
+            mustKeep.add(bestForShadowEvo);
+          }
+        }
       }
-    }
 
-    const toDelete = unbuiltPokemon.filter((p) => !toKeep.includes(p));
+      // Sort all unbuilt by overall best potential
+      const sortedUnbuilt = unbuiltPokemon.sort((a, b) => {
+        const aMaxPercentile = Math.max(
+          a.calculatedRank.percentile,
+          a.calculatedRank.bestEvolutionRank?.percentile ?? 0,
+        );
+        const bMaxPercentile = Math.max(
+          b.calculatedRank.percentile,
+          b.calculatedRank.bestEvolutionRank?.percentile ?? 0,
+        );
 
-    totalToKeep += toKeep.length;
-    totalToDelete += toDelete.length;
+        if (aMaxPercentile !== bMaxPercentile) {
+          return bMaxPercentile - aMaxPercentile;
+        }
+        return b.calculatedRank.cp - a.calculatedRank.cp;
+      });
+
+      // Fill remaining slots up to keepTopN
+      const toKeep: Pokemon[] = Array.from(mustKeep);
+
+      for (const pokemon of sortedUnbuilt) {
+        if (toKeep.length >= keepTopN) break;
+        if (!mustKeep.has(pokemon)) {
+          toKeep.push(pokemon);
+        }
+      }
+
+      const toDelete = unbuiltPokemon.filter((p) => !toKeep.includes(p));
+
+      return { keep: toKeep, delete: toDelete };
+    };
+
+    const normalResult = processAlignment(normal);
+    const shadowResult = processAlignment(shadow);
+
+    totalToKeep += normalResult.keep.length + shadowResult.keep.length;
+    totalToDelete += normalResult.delete.length + shadowResult.delete.length;
 
     duplicateGroups.push({
       speciesId,
       speciesName: gmData.speciesName,
-      alignment,
-      totalCount: pokemonList.length,
-      keep: toKeep,
-      delete: toDelete,
+      totalCount,
+      normalKeep: normalResult.keep,
+      normalDelete: normalResult.delete,
+      shadowKeep: shadowResult.keep,
+      shadowDelete: shadowResult.delete,
     });
   }
 
   // Sort groups by number of deletable Pokemon (most deletable first)
-  duplicateGroups.sort((a, b) => b.delete.length - a.delete.length);
+  duplicateGroups.sort(
+    (a, b) =>
+      b.normalDelete.length +
+      b.shadowDelete.length -
+      (a.normalDelete.length + a.shadowDelete.length),
+  );
 
   return {
     groups: duplicateGroups,
@@ -318,21 +442,24 @@ export async function identifyDuplicates(
 export function generateSearchString(pokemonList: Pokemon[]): string {
   if (pokemonList.length === 0) return '';
 
-  // Group by species for more efficient search string
+  // Group by species name (combining normal and shadow)
   const speciesGroups = new Map<string, Pokemon[]>();
 
   for (const pokemon of pokemonList) {
-    if (!speciesGroups.has(pokemon.name)) {
-      speciesGroups.set(pokemon.name, []);
+    // Normalize name by removing " (shadow)" suffix if present
+    const normalizedName = pokemon.name.replace(/ \(shadow\)$/i, '');
+
+    if (!speciesGroups.has(normalizedName)) {
+      speciesGroups.set(normalizedName, []);
     }
-    speciesGroups.get(pokemon.name)!.push(pokemon);
+    speciesGroups.get(normalizedName)!.push(pokemon);
   }
 
   // Build search string
   const parts: string[] = [];
 
   for (const [name, pokemons] of speciesGroups.entries()) {
-    // Get unique CP values for this species
+    // Get all unique CP values for this species (both normal and shadow)
     const cpValues = [
       ...new Set(
         pokemons.map((p) => p.stats.cp).filter((cp) => cp !== undefined),

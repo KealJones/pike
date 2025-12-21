@@ -27,6 +27,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { ivChartsCreated, useFormat, usePokemonStorage } from '../AppStore';
 import { useGameMaster } from '../hooks/useGameMaster';
+import { useRankingList } from '../hooks/useRankingList';
 import type { Pokemon } from '../types/pokemon.types';
 import { getPokemonGamemasterData } from '../utils/gamemaster';
 import {
@@ -40,6 +41,7 @@ import {
 export default function DuplicateManagerPage() {
   const league = useFormat((state) => state.cp);
   const gameMaster = useGameMaster();
+  const rankingList = useRankingList();
   const pokemonStorage = usePokemonStorage((state) => state.pokemonStorage);
 
   const [analysis, setAnalysis] = useState<DuplicateAnalysis | null>(null);
@@ -63,13 +65,13 @@ export default function DuplicateManagerPage() {
       }
 
       await ivChartsCreated;
-
       const result = await identifyDuplicates(
         pokemonStorage,
         league,
         gameMaster,
         keepTopN,
         builtThreshold,
+        rankingList,
       );
 
       if (isMounted) {
@@ -84,7 +86,14 @@ export default function DuplicateManagerPage() {
       cancel();
       isMounted = false;
     };
-  }, [pokemonStorage, league, gameMaster, keepTopN, builtThreshold]);
+  }, [
+    pokemonStorage,
+    league,
+    gameMaster,
+    keepTopN,
+    builtThreshold,
+    rankingList,
+  ]);
 
   const filteredGroups = useMemo(() => {
     if (!analysis) return [];
@@ -102,12 +111,20 @@ export default function DuplicateManagerPage() {
     }
 
     // Apply alignment filter
-    if (alignmentFilter !== 'all') {
-      filtered = filtered.filter((g) => g.alignment === alignmentFilter);
+    if (alignmentFilter === 'shadow') {
+      filtered = filtered.filter(
+        (g) => g.shadowKeep.length + g.shadowDelete.length > 0,
+      );
+    } else if (alignmentFilter === 'normal') {
+      filtered = filtered.filter(
+        (g) => g.normalKeep.length + g.normalDelete.length > 0,
+      );
     }
 
     // Only show groups with duplicates
-    filtered = filtered.filter((g) => g.delete.length > 0);
+    filtered = filtered.filter(
+      (g) => g.normalDelete.length + g.shadowDelete.length > 0,
+    );
 
     return filtered;
   }, [analysis, searchFilter, alignmentFilter]);
@@ -137,7 +154,10 @@ export default function DuplicateManagerPage() {
   const exportAllDeletables = () => {
     if (!analysis) return;
 
-    const allDeletable = analysis.groups.flatMap((g) => g.delete);
+    const allDeletable = analysis.groups.flatMap((g) => [
+      ...g.normalDelete,
+      ...g.shadowDelete,
+    ]);
     const searchString = generateSearchString(allDeletable);
     copyToClipboard(searchString, 'all deletables');
   };
@@ -145,18 +165,23 @@ export default function DuplicateManagerPage() {
   const exportAllKeepers = () => {
     if (!analysis) return;
 
-    const allKeepers = analysis.groups.flatMap((g) => g.keep);
+    const allKeepers = analysis.groups.flatMap((g) => [
+      ...g.normalKeep,
+      ...g.shadowKeep,
+    ]);
     const searchString = generateSearchString(allKeepers);
     copyToClipboard(searchString, 'all keepers');
   };
 
   const exportGroupDeletables = (group: DuplicateGroup) => {
-    const searchString = generateSearchString(group.delete);
+    const allDeletable = [...group.normalDelete, ...group.shadowDelete];
+    const searchString = generateSearchString(allDeletable);
     copyToClipboard(searchString, `${group.speciesName} deletables`);
   };
 
   const exportGroupKeepers = (group: DuplicateGroup) => {
-    const searchString = generateSearchString(group.keep);
+    const allKeepers = [...group.normalKeep, ...group.shadowKeep];
+    const searchString = generateSearchString(allKeepers);
     copyToClipboard(searchString, `${group.speciesName} keepers`);
   };
 
@@ -299,12 +324,16 @@ export default function DuplicateManagerPage() {
       )}
 
       {filteredGroups.map((group) => {
-        const key = `${group.speciesId}_${group.alignment}`;
+        const key = group.speciesId;
         const isExpanded = expandedGroups.has(key);
         const gmData = getPokemonGamemasterData(
           group.speciesId.replace('_shadow', ''),
           gameMaster,
         );
+
+        const totalKeep = group.normalKeep.length + group.shadowKeep.length;
+        const totalDelete =
+          group.normalDelete.length + group.shadowDelete.length;
 
         return (
           <Accordion
@@ -327,7 +356,6 @@ export default function DuplicateManagerPage() {
                 <Box flex={1}>
                   <Typography variant="subtitle1" fontWeight="bold">
                     {group.speciesName}
-                    {group.alignment === 'shadow' && ' (Shadow)'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {group.totalCount} total
@@ -336,14 +364,14 @@ export default function DuplicateManagerPage() {
 
                 <Chip
                   icon={<CheckCircle />}
-                  label={`Keep ${group.keep.length}`}
+                  label={`Keep ${totalKeep}`}
                   color="success"
                   size="small"
                 />
 
                 <Chip
                   icon={<Delete />}
-                  label={`Delete ${group.delete.length}`}
+                  label={`Delete ${totalDelete}`}
                   color="error"
                   size="small"
                 />
@@ -352,7 +380,7 @@ export default function DuplicateManagerPage() {
 
             <AccordionDetails>
               <Stack spacing={2}>
-                {group.keep.length > 0 && (
+                {totalKeep > 0 && (
                   <Box>
                     <Stack direction="row" spacing={1}>
                       <Typography
@@ -360,7 +388,7 @@ export default function DuplicateManagerPage() {
                         color="success.main"
                         gutterBottom
                       >
-                        ✅ KEEP ({group.keep.length})
+                        ✅ KEEP ({totalKeep})
                       </Typography>
                       <Tooltip title="Export keepers for this species">
                         <IconButton
@@ -369,21 +397,28 @@ export default function DuplicateManagerPage() {
                             e.stopPropagation();
                             exportGroupKeepers(group);
                           }}
-                          disabled={group.keep.length === 0}
+                          disabled={totalKeep === 0}
                         >
                           <ContentCopy fontSize="small" />
                         </IconButton>
                       </Tooltip>
                     </Stack>
                     <Stack spacing={1}>
-                      {group.keep.map((pokemon, idx) => (
+                      {group.normalKeep.map((pokemon, idx) => (
                         <PokemonRow key={idx} pokemon={pokemon} status="keep" />
+                      ))}
+                      {group.shadowKeep.map((pokemon, idx) => (
+                        <PokemonRow
+                          key={`shadow-${idx}`}
+                          pokemon={pokemon}
+                          status="keep"
+                        />
                       ))}
                     </Stack>
                   </Box>
                 )}
 
-                {group.delete.length > 0 && (
+                {totalDelete > 0 && (
                   <Box>
                     <Stack direction="row" spacing={1}>
                       <Typography
@@ -391,7 +426,7 @@ export default function DuplicateManagerPage() {
                         color="error.main"
                         gutterBottom
                       >
-                        🗑️ SAFE TO DELETE ({group.delete.length})
+                        🗑️ SAFE TO DELETE ({totalDelete})
                       </Typography>
                       <Tooltip title="Export deletables for this species">
                         <IconButton
@@ -400,16 +435,23 @@ export default function DuplicateManagerPage() {
                             e.stopPropagation();
                             exportGroupDeletables(group);
                           }}
-                          disabled={group.delete.length === 0}
+                          disabled={totalDelete === 0}
                         >
                           <ContentCopy fontSize="small" />
                         </IconButton>
                       </Tooltip>
                     </Stack>
                     <Stack spacing={1}>
-                      {group.delete.map((pokemon, idx) => (
+                      {group.normalDelete.map((pokemon, idx) => (
                         <PokemonRow
                           key={idx}
+                          pokemon={pokemon}
+                          status="delete"
+                        />
+                      ))}
+                      {group.shadowDelete.map((pokemon, idx) => (
+                        <PokemonRow
+                          key={`shadow-${idx}`}
                           pokemon={pokemon}
                           status="delete"
                         />
@@ -434,6 +476,10 @@ interface PokemonRowProps {
       cp: number;
       evolutionRanks?: EvolutionRankInfo[];
       bestEvolutionRank?: EvolutionRankInfo | null;
+      rankingInfo?: {
+        rank: number;
+        rating: number;
+      };
     };
   };
   status: 'keep' | 'delete';
@@ -444,6 +490,7 @@ function PokemonRow({ pokemon, status }: PokemonRowProps) {
   const percentile = pokemon.calculatedRank?.percentile ?? 100;
   const cp = pokemon.stats.cp ?? 0;
   const bestEvolution = pokemon.calculatedRank?.bestEvolutionRank;
+  const rankingInfo = pokemon.calculatedRank?.rankingInfo;
 
   // Determine why this Pokemon is being kept
   const currentFormGood = percentile >= 85; // Top 15% in current form
@@ -483,13 +530,30 @@ function PokemonRow({ pokemon, status }: PokemonRowProps) {
             <Typography variant="caption" color="text.secondary">
               Current: {percentile.toFixed(1)}%
             </Typography>
+            {rankingInfo && (
+              <>
+                <Typography variant="caption" color="text.secondary">
+                  •
+                </Typography>
+                <Chip
+                  label={`#${rankingInfo.rank} ${pokemon.name} (${rankingInfo.rating.toFixed(1)})`}
+                  size="small"
+                  color="warning"
+                  sx={{ height: 20, fontSize: '0.7rem' }}
+                />
+              </>
+            )}
             {bestEvolution && (
               <>
                 <Typography variant="caption" color="text.secondary">
                   •
                 </Typography>
                 <Chip
-                  label={`${bestEvolution.evolvedSpeciesName}: ${bestEvolution.percentile.toFixed(1)}%`}
+                  label={`${bestEvolution.evolvedSpeciesName}: ${bestEvolution.percentile.toFixed(1)}%${
+                    bestEvolution.rankingInfo
+                      ? ` (#${bestEvolution.rankingInfo.rank})`
+                      : ''
+                  }`}
                   size="small"
                   color={evolutionGood ? 'primary' : 'default'}
                   sx={{ height: 20, fontSize: '0.7rem' }}

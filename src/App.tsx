@@ -5,6 +5,7 @@ import {
   QueryStats,
   Science,
   Search,
+  SportsEsports,
   TableChart,
   Upload,
 } from '@mui/icons-material';
@@ -45,6 +46,11 @@ const NAVIGATION: Navigation = [
     title: 'Search String Builder',
     segment: 'search-string-builder',
     icon: <Search />,
+  },
+  {
+    title: 'PvP Simulation',
+    segment: 'pvp-simulation',
+    icon: <SportsEsports />,
   },
   // Future extras:
   // { title: 'Feedback', icon: <Feedback /> },

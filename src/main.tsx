@@ -8,6 +8,7 @@ import './index.css';
 import BottleCapCalculatorPage from './pages/BottleCapCalculatorPage.tsx';
 import DuplicateManagerPage from './pages/DuplicateManagerPage.tsx';
 import AnalysisPage from './pages/index.tsx';
+import PvpSimulationPage from './pages/PvpSimulationPage.tsx';
 import PvpTradeCalculatorPage from './pages/PvpTradeCalculator.tsx';
 import SearchStringBuilderPage from './pages/SearchStringBuilderPage.tsx';
 import { Layout } from './ui/Layout.tsx';
@@ -36,6 +37,10 @@ const router = createHashRouter([
           {
             path: '/search-string-builder',
             Component: SearchStringBuilderPage,
+          },
+          {
+            path: '/pvp-simulation',
+            Component: PvpSimulationPage,
           },
         ],
       },
